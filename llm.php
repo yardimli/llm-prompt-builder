@@ -99,89 +99,6 @@
 	if (favorites !== []) {
 		showFavoritesOnly = true;
 	}
-	$(document).ready(function () {
-
-		loadFolders('.', true, false, null);
-
-		$('#toggle-favorites').click(function () {
-			showFavoritesOnly = !showFavoritesOnly;
-			$(this).text(showFavoritesOnly ? 'Show All Folders' : 'Show Favorites Only');
-			loadFolders('.', false, false, null);
-			saveState();
-		});
-
-		$(document).on('click', '.folder-star', function (e) {
-			e.stopPropagation();
-			const path = $(this).next('.folder').data('path');
-			const index = favorites.indexOf(path);
-			if (index === -1) {
-				favorites.push(path);
-				$(this).addClass('favorite');
-			} else {
-				favorites.splice(index, 1);
-				$(this).removeClass('favorite');
-			}
-			localStorage.setItem('favorites', JSON.stringify(favorites));
-			saveState();
-		});
-
-		$(document).on('click', '.folder', function (e) {
-			e.stopPropagation();
-			var path = $(this).data('path');
-			var $this = $(this);
-
-			if ($this.hasClass('open')) {
-				$this.removeClass('open');
-				$this.next('ul').slideUp(200);
-			} else {
-				$this.addClass('open');
-				if ($this.next('ul').length) {
-					$this.next('ul').slideDown(200);
-				} else {
-					loadFolders(path, false, false, $this);
-				}
-			}
-			saveState();
-		});
-
-		$(document).on('click', '.file', function (e) {
-			e.stopPropagation();
-			var path = $(this).attr('data-path');
-			var $this = $(this);
-
-			if ($this.hasClass('open')) {
-				$this.removeClass('open');
-				$this.next('ul').slideUp(200);
-			} else {
-				$this.addClass('open');
-				if ($this.next('ul').length) {
-					$this.next('ul').slideDown(200);
-				} else {
-					loadFileContents(path, $this, false);
-				}
-			}
-			saveState();
-		});
-
-		$(document).on('change', 'input[type="checkbox"]', function (e) {
-			e.stopPropagation();
-			var isChecked = $(this).prop('checked');
-			$(this).prop('checked', isChecked);
-
-			if ($(this).hasClass('file-function')) {
-				$('input[type="checkbox"][data-path="' + $(this).data('path') + '"][data-name="full_file"]').prop('checked', false);
-			}
-			if ($(this).hasClass('full-file')) {
-				$('input[type="checkbox"][data-path="' + $(this).data('path') + '"]').prop('checked', false);
-				$(this).prop('checked', isChecked);
-			}
-
-			updateSelectedContent();
-			saveState();
-		});
-
-	});
-
 
 	function saveState() {
 		const openFolders = [];
@@ -202,13 +119,35 @@
 
 	function restoreState() {
 		const openFolders = JSON.parse(localStorage.getItem('openFolders')) || [];
-		openFolders.forEach(function (path) {
-			console.log('path', path);
-			const folderElement = $(`.folder[data-path="${path}"]`);
-			folderElement.addClass('open');
-			loadFolders(path, false, true, folderElement);
+
+		// Sort the openFolders array by path length (shortest to longest)
+		openFolders.sort((a, b) => a.split('/').length - b.split('/').length);
+
+		function openFolder(path) {
+			return new Promise((resolve) => {
+				const folderElement = $(`.folder[data-path="${path}"]`);
+				if (folderElement.length && !folderElement.hasClass('open')) {
+					folderElement.addClass('open');
+					loadFolders(path, folderElement).then(() => {
+						resolve();
+					});
+				} else {
+					resolve();
+				}
+			});
+		}
+
+		async function openFoldersSequentially() {
+			for (const path of openFolders) {
+				await openFolder(path);
+			}
+		}
+
+		openFoldersSequentially().then(() => {
+			restoreCheckedStates(true);
 		});
 	}
+
 
 	function restoreCheckedStates(updateContent = false) {
 		const selectedItems = JSON.parse(localStorage.getItem('selectedItems')) || [];
@@ -235,7 +174,7 @@
 				$.ajax({
 					url: 'file_explorer.php',
 					method: 'POST',
-					data: {action: 'get_file_content', path: path, 'source' : 'updateSelectedContent'},
+					data: {action: 'get_file_content', path: path, 'source': 'updateSelectedContent'},
 					success: function (response) {
 						var data = JSON.parse(response);
 						addedWholeFiles += path;
@@ -280,61 +219,80 @@
 	}
 
 
-	function loadFolders(path = '.', restore_state_flag = false, restore_state_files = false, element) {
-		$.ajax({
-			url: 'file_explorer.php',
-			method: 'POST',
-			data: {
-				action: 'get_folders',
-				path: path
-			},
-			success: function (response) {
-				var data = JSON.parse(response);
-				var ul = $('<ul>').addClass('list-unstyled ms-4').hide();
-				data.folders.forEach(function (folder) {
-					const fullPath = path === '.' ? folder : path + '/' + folder;
-					if (!showFavoritesOnly || isPathOrParentFavorite(fullPath)) {
+	function loadFolders(path, element) {
+		return new Promise((resolve, reject) => {
+			const selectedItems = JSON.parse(localStorage.getItem('selectedItems')) || [];
+			$.ajax({
+				url: 'file_explorer.php',
+				method: 'POST',
+				data: {
+					action: 'get_folders',
+					path: path
+				},
+				success: function (response) {
+					var data = JSON.parse(response);
+					var ul = $('<ul>').addClass('list-unstyled ms-4').hide();
+					data.folders.forEach(function (folder) {
+						const fullPath = path === '.' ? folder : path + '/' + folder;
+						if (!showFavoritesOnly || isPathOrParentFavorite(fullPath)) {
+							ul.append(
+								$('<li>').append(
+									$('<i>').addClass('fas fa-star folder-star' + (favorites.includes(fullPath) ? ' favorite' : ''))
+								).append(
+									$('<span>').addClass('folder').text(folder).attr('data-path', fullPath)
+								)
+							);
+						}
+					});
+					data.files.forEach(function (file) {
 						ul.append(
 							$('<li>').append(
-								$('<i>').addClass('fas fa-star folder-star' + (favorites.includes(fullPath) ? ' favorite' : ''))
+								$('<div>').addClass('checkbox-wrapper').append(
+									$('<input>').addClass('full-file').attr({
+										type: 'checkbox',
+										'data-path': path + '/' + file,
+										'data-name': 'full_file'
+									})
+								)
 							).append(
-								$('<span>').addClass('folder').text(folder).attr('data-path', fullPath)
+								$('<span>').attr({'data-path': path + '/' + file, 'data-name': 'full_file'}).addClass('file').text(file)
 							)
 						);
+					});
+					if (element) {
+						element.after(ul);
+						ul.slideDown(200);
+					} else {
+						$('#file-tree').html(ul);
+						ul.show();
 					}
-				});
-				data.files.forEach(function (file) {
-					ul.append(
-						$('<li>').append(
-							$('<div>').addClass('checkbox-wrapper').append(
-								$('<input>').addClass('full-file').attr({type: 'checkbox', 'data-path': path + '/' + file, 'data-name': 'full_file'})
-							)
-						).append(
-							$('<span>').attr({'data-path': path + '/' + file, 'data-name': 'full_file'}).addClass('file').text(file)
-						)
-					);
-				});
-				if (element) {
-					element.after(ul);
-					ul.slideDown(200);
-				} else {
-					$('#file-tree').html(ul);
-					ul.show();
-				}
-				data.files.forEach(function (file) {
-					if (restore_state_files) {
-						console.log('restoring file state', path + '/' + file);
-						loadFileContents(path + '/' + file, $('.file[data-path="' + path + '/' + file + '"]'), true);
-					}
-				});
+					data.files.forEach(function (file) {
+						let item_found = false;
+						selectedItems.forEach(function (item) {
+							if (item.path === path + '/' + file) {
+								item_found = true;
+							}
+						});
 
-				if (restore_state_flag) {
-					restoreState();
+						if (item_found) {
+							console.log('restoring file state', path + '/' + file);
+							loadFileContents(path + '/' + file, $('.file[data-path="' + path + '/' + file + '"]'), true);
+						}
+					});
+
+					if (!element) {
+						setTimeout(() => {
+							restoreCheckedStates(true);
+							resolve();
+						}, 200);
+					} else {
+						resolve();
+					}
+				},
+				error: function (xhr, status, error) {
+					reject(error);
 				}
-				if (restore_state_files) {
-					restoreCheckedStates(true);
-				}
-			}
+			});
 		});
 	}
 
@@ -352,7 +310,11 @@
 					ul.append(
 						$('<li>').append(
 							$('<div>').addClass('checkbox-wrapper').append(
-								$('<input>').addClass('file-function').attr({type: 'checkbox', 'data-path': path, 'data-name': item.name})
+								$('<input>').addClass('file-function').attr({
+									type: 'checkbox',
+									'data-path': path,
+									'data-name': item.name
+								})
 							)
 						).append(
 							$('<span>').text(item.name)
@@ -368,6 +330,94 @@
 			}
 		});
 	}
+
+
+
+	$(document).ready(function () {
+
+		loadFolders('.', null).then(() => {
+			restoreState();
+		});
+
+		$('#toggle-favorites').click(function () {
+			showFavoritesOnly = !showFavoritesOnly;
+			$(this).text(showFavoritesOnly ? 'Show All Folders' : 'Show Favorites Only');
+			loadFolders('.', null);
+			saveState();
+		});
+
+		$(document).on('click', '.folder-star', function (e) {
+			e.stopPropagation();
+			const path = $(this).next('.folder').data('path');
+			const index = favorites.indexOf(path);
+			if (index === -1) {
+				favorites.push(path);
+				$(this).addClass('favorite');
+			} else {
+				favorites.splice(index, 1);
+				$(this).removeClass('favorite');
+			}
+			localStorage.setItem('favorites', JSON.stringify(favorites));
+			saveState();
+		});
+
+		$(document).on('click', '.folder', function (e) {
+			e.stopPropagation();
+			var path = $(this).data('path');
+			var $this = $(this);
+
+			if ($this.hasClass('open')) {
+				$this.removeClass('open');
+				$this.next('ul').slideUp(200);
+			} else {
+				$this.addClass('open');
+				if ($this.next('ul').length) {
+					$this.next('ul').slideDown(200);
+				} else {
+					loadFolders(path, $this);
+				}
+			}
+			saveState();
+		});
+
+		$(document).on('click', '.file', function (e) {
+			e.stopPropagation();
+			var path = $(this).attr('data-path');
+			var $this = $(this);
+
+			if ($this.hasClass('open')) {
+				$this.removeClass('open');
+				$this.next('ul').slideUp(200);
+			} else {
+				$this.addClass('open');
+				if ($this.next('ul').length) {
+					$this.next('ul').slideDown(200);
+				} else {
+					loadFileContents(path, $this, false);
+				}
+			}
+			saveState();
+		});
+
+		$(document).on('change', 'input[type="checkbox"]', function (e) {
+			e.stopPropagation();
+			var isChecked = $(this).prop('checked');
+			$(this).prop('checked', isChecked);
+
+			if ($(this).hasClass('file-function')) {
+				$('input[type="checkbox"][data-path="' + $(this).data('path') + '"][data-name="full_file"]').prop('checked', false);
+			}
+			if ($(this).hasClass('full-file')) {
+				$('input[type="checkbox"][data-path="' + $(this).data('path') + '"]').prop('checked', false);
+				$(this).prop('checked', isChecked);
+			}
+
+			updateSelectedContent();
+			saveState();
+		});
+
+	});
+
 </script>
 </body>
 </html>
