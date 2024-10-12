@@ -1,5 +1,5 @@
-# llm-php-helper
-PHP Tool for Building Targeted Prompts for LLM (Large Language Model) Code Assistance
+# llm-prompt-builder
+LLM Prompt Builder - A NodeJS and PHP Tool to help query LLM's like ChatGPT and Claude for help with writing code.
 
 ### Screenshots
 

@@ -364,7 +364,7 @@
 			$('body').addClass('dark-mode');
 			$('#toggle-mode').find('i').removeClass('fa-sun').addClass('fa-moon');
 		}
-		
+
 		$(document).on('click', '.folder-star', function (e) {
 			e.stopPropagation();
 			const path = $(this).next('.folder').data('path');
