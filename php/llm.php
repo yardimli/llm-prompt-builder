@@ -62,6 +62,13 @@
           color: gold;
       }
 
+      body.dark-mode { background-color: #333; color: #fff; }
+      body.dark-mode #file-tree, body.dark-mode #selected-content { border-color: #555; background-color: #444; color: #fff; }
+      body.dark-mode .nav-link { color: #fff; }
+      body.dark-mode .btn-outline-primary { color: #fff; border-color: #fff; }
+      body.dark-mode .btn-outline-primary:hover { background-color: #0d6efd; color: #fff; }
+      body.dark-mode .fs-4 { color: #fff; }
+
 	</style>
 </head>
 <body>
@@ -76,8 +83,13 @@
 		</a>
 
 		<ul class="nav nav-pills">
+			<li class="nav-item me-2">
+				<button id="toggle-favorites" class="btn btn-outline-primary">Show Favorites Only</button>
+			</li>
 			<li class="nav-item">
-				<button id="toggle-favorites" class="btn btn-primary">Show Favorites Only</button>
+				<button id="toggle-mode" class="btn btn-outline-primary">
+					<i class="fas fa-sun"></i>
+				</button>
 			</li>
 		</ul>
 	</header>
@@ -96,7 +108,7 @@
 <script>
 	let showFavoritesOnly = false;
 	let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
-	if (favorites !== []) {
+	if (favorites.length > 0) {
 		showFavoritesOnly = true;
 	}
 
@@ -147,7 +159,6 @@
 			restoreCheckedStates(true);
 		});
 	}
-
 
 	function restoreCheckedStates(updateContent = false) {
 		const selectedItems = JSON.parse(localStorage.getItem('selectedItems')) || [];
@@ -206,7 +217,6 @@
 		});
 	}
 
-
 	function isPathOrParentFavorite(path) {
 		if (favorites.includes(path)) return true;
 
@@ -217,7 +227,6 @@
 		}
 		return false;
 	}
-
 
 	function loadFolders(path, element) {
 		return new Promise((resolve, reject) => {
@@ -332,7 +341,6 @@
 	}
 
 
-
 	$(document).ready(function () {
 
 		loadFolders('.', null).then(() => {
@@ -346,6 +354,17 @@
 			saveState();
 		});
 
+		$('#toggle-mode').click(function() {
+			$('body').toggleClass('dark-mode');
+			$(this).find('i').toggleClass('fa-sun fa-moon');
+			localStorage.setItem('darkMode', $('body').hasClass('dark-mode'));
+		});
+
+		if (localStorage.getItem('darkMode') === 'true') {
+			$('body').addClass('dark-mode');
+			$('#toggle-mode').find('i').removeClass('fa-sun').addClass('fa-moon');
+		}
+		
 		$(document).on('click', '.folder-star', function (e) {
 			e.stopPropagation();
 			const path = $(this).next('.folder').data('path');
