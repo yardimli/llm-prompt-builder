@@ -1,0 +1,11 @@
+{
+  "name": "llm-code-prompt-builder",
+  "version": "1.0.0",
+  "description": "LLM Code Prompt Builder",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "locutus of borg",
+  "license": "ISC"
+}
