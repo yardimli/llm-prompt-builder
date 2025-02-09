@@ -86,6 +86,9 @@
 			<li class="nav-item me-2">
 				<button id="toggle-favorites" class="btn btn-outline-primary">Show Favorites Only</button>
 			</li>
+			<li class="nav-item me-2">
+				<button id="unselect-all" class="btn btn-outline-primary">Unselect All Files</button>
+			</li>
 			<li class="nav-item">
 				<button id="toggle-mode" class="btn btn-outline-primary">
 					<i class="fas fa-sun"></i>
@@ -175,6 +178,7 @@
 		var selectedContent = '';
 		var currentFile = '';
 		var addedWholeFiles = '';
+		$('#selected-content').val('');
 		$('input[type="checkbox"]:checked').each(function () {
 			var path = $(this).attr('data-path');
 			var name = $(this).attr('data-name');
@@ -345,6 +349,13 @@
 		loadFolders('.', null).then(() => {
 			restoreState();
 		});
+		
+		$('#unselect-all').click(function () {
+			$('input[type="checkbox"]').prop('checked', false);
+			updateSelectedContent();
+			saveState();
+		});
+		
 		
 		$('#toggle-favorites').click(function () {
 			showFavoritesOnly = !showFavoritesOnly;
