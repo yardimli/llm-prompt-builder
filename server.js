@@ -4,27 +4,36 @@ const path = require('path');
 const url = require('url');
 
 const config = {
-	//can also set it manually to 'c:/users/locutus-borg/my-projects/' '/home/locutus-borg/my-projects/'
-	root_directory: path.resolve(__dirname, '..'),
-	server_port : 3000
+	// Array of root directories
+	root_directories: [
+		path.resolve(__dirname, '..'),
+		'e:/ComfyUI_windows_portable/ComfyUI/custom_nodes'
+		// Add more paths as needed
+		// 'c:/users/locutus-borg/my-projects/',
+		// '/home/locutus-borg/my-projects/'
+	],
+	server_port: 3000
 };
 
-function resolvePath(inputPath, rootDirectory) {
-	const realRoot = path.resolve(rootDirectory);
-	const fullPath = path.resolve(rootDirectory, inputPath);
+function resolvePath(inputPath, rootIndex) {
+	if (rootIndex >= config.root_directories.length) {
+		throw new Error("Invalid root directory index.");
+	}
+	const realRoot = path.resolve(config.root_directories[rootIndex]);
+	const fullPath = path.resolve(realRoot, inputPath);
 	if (!fullPath.startsWith(realRoot)) {
 		throw new Error("Invalid path.");
 	}
 	return fullPath;
 }
 
-function getFolders(inputPath, rootDirectory) {
-	console.log('called getFolders:', inputPath, rootDirectory);
-	const fullPath = resolvePath(inputPath, rootDirectory);
-	console.log(fullPath, inputPath, rootDirectory);
+function getFolders(inputPath, rootIndex) {
+	console.log('called getFolders:', inputPath, rootIndex);
+	const fullPath = resolvePath(inputPath, rootIndex);
+	console.log(fullPath, inputPath, rootIndex);
 	const folders = [];
 	const files = [];
-	const allowedExtensions = ['js', 'php', 'html', 'css'];
+	const allowedExtensions = ['js', 'php', 'py', 'html', 'css'];
 	const excludedFolders = ['vendor', 'storage', 'node_modules'];
 	
 	const items = fs.readdirSync(fullPath);
@@ -46,9 +55,9 @@ function getFolders(inputPath, rootDirectory) {
 	return { folders, files };
 }
 
-function getFileContents(inputPath, rootDirectory) {
-	console.log('called getFileContents:', inputPath, rootDirectory);
-	const fullPath = resolvePath(inputPath, rootDirectory);
+function getFileContents(inputPath, rootIndex) {
+	console.log('called getFileContents:', inputPath, rootIndex);
+	const fullPath = resolvePath(inputPath, rootIndex);
 	const extension = path.extname(fullPath).slice(1);
 	const contents = [];
 	const fileContents = fs.readFileSync(fullPath, 'utf8');
@@ -79,13 +88,13 @@ function getFileContents(inputPath, rootDirectory) {
 	return { items: contents };
 }
 
-function getSelectedContent(inputPath, name, rootDirectory) {
-	console.log('called getSelectedContent:', inputPath, name, rootDirectory);
-	const fullPath = resolvePath(inputPath, rootDirectory);
+function getSelectedContent(inputPath, name, rootIndex) {
+	console.log('called getSelectedContent:', inputPath, name, rootIndex);
+	const fullPath = resolvePath(inputPath, rootIndex);
 	const extension = path.extname(fullPath).slice(1);
 	const fileContents = fs.readFileSync(fullPath, 'utf8');
 	
-	if (['js', 'php', 'html'].includes(extension)) {
+	if (['js', 'php', 'py', 'html'].includes(extension)) {
 		if (name.startsWith('Div ID:')) {
 			const divRegex = new RegExp(`<div[^>]*id=["\']${name.slice(8)}["\'][^>]*>.*?<\/div>`, 's');
 			const match = fileContents.match(divRegex);
@@ -100,11 +109,20 @@ function getSelectedContent(inputPath, name, rootDirectory) {
 	}
 }
 
-function getFileContent(inputPath, rootDirectory) {
-	console.log('called getFileContent:', inputPath, rootDirectory);
-	const fullPath = resolvePath(inputPath, rootDirectory);
+function getFileContent(inputPath, rootIndex) {
+	console.log('called getFileContent:', inputPath, rootIndex);
+	const fullPath = resolvePath(inputPath, rootIndex);
 	const fileContents = fs.readFileSync(fullPath, 'utf8');
 	return { content: fileContents.replace(/\s+/g, ' ') };
+}
+
+function getRootDirectories() {
+	return {
+		roots: config.root_directories.map((dir, index) => ({
+			index,
+			path: dir
+		}))
+	};
 }
 
 const server = http.createServer((req, res) => {
@@ -119,22 +137,30 @@ const server = http.createServer((req, res) => {
 			const postData = new URLSearchParams(body);
 			const action = postData.get('action');
 			const path = postData.get('path');
-			console.log('action and path:', action, path);
+			const rootIndex = parseInt(postData.get('rootIndex') || '0');
+			console.log('action, path and rootIndex:', action, path, rootIndex);
 			
 			let result;
-			if (action === 'get_folders') {
-				result = getFolders(path, config.root_directory);
-			} else if (action === 'get_file_contents') {
-				result = getFileContents(path, config.root_directory);
-			} else if (action === 'get_selected_content') {
-				const name = postData.get('name');
-				result = getSelectedContent(path, name, config.root_directory);
-			} else if (action === 'get_file_content') {
-				result = getFileContent(path, config.root_directory);
+			try {
+				if (action === 'get_roots') {
+					result = getRootDirectories();
+				} else if (action === 'get_folders') {
+					result = getFolders(path, rootIndex);
+				} else if (action === 'get_file_contents') {
+					result = getFileContents(path, rootIndex);
+				} else if (action === 'get_selected_content') {
+					const name = postData.get('name');
+					result = getSelectedContent(path, name, rootIndex);
+				} else if (action === 'get_file_content') {
+					result = getFileContent(path, rootIndex);
+				}
+				
+				res.writeHead(200, { 'Content-Type': 'application/json' });
+				res.end(JSON.stringify(result));
+			} catch (error) {
+				res.writeHead(400, { 'Content-Type': 'application/json' });
+				res.end(JSON.stringify({ error: error.message }));
 			}
-			
-			res.writeHead(200, { 'Content-Type': 'application/json' });
-			res.end(JSON.stringify(result));
 		});
 	} else if (req.method === 'GET' && parsedUrl.pathname === '/') {
 		console.log('GET /');

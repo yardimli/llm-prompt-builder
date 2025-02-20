@@ -13,6 +13,16 @@
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 	<style>
+		#root-directory {
+			min-width: 200px;
+		}
+		
+		body.dark-mode #root-directory {
+			background-color: #444;
+			color: #fff;
+			border-color: #555;
+		}
+		
 		.folder, .file {
 			cursor: pointer;
 		}
@@ -62,18 +72,41 @@
 			color: gold;
 		}
 		
-		body.dark-mode { background-color: #333; color: #fff; }
-		body.dark-mode #file-tree, body.dark-mode #selected-content { border-color: #555; background-color: #444; color: #fff; }
-		body.dark-mode .nav-link { color: #fff; }
-		body.dark-mode .btn-outline-primary { color: #fff; border-color: #fff; }
-		body.dark-mode .btn-outline-primary:hover { background-color: #0d6efd; color: #fff; }
-		body.dark-mode .fs-4 { color: #fff; }
+		body.dark-mode {
+			background-color: #333;
+			color: #fff;
+		}
+		
+		body.dark-mode #file-tree, body.dark-mode #selected-content {
+			border-color: #555;
+			background-color: #444;
+			color: #fff;
+		}
+		
+		body.dark-mode .nav-link {
+			color: #fff;
+		}
+		
+		body.dark-mode .btn-outline-primary {
+			color: #fff;
+			border-color: #fff;
+		}
+		
+		body.dark-mode .btn-outline-primary:hover {
+			background-color: #0d6efd;
+			color: #fff;
+		}
+		
+		body.dark-mode .fs-4 {
+			color: #fff;
+		}
 	
 	</style>
 </head>
 <body>
 
 <div class="container mt-2">
+	<!-- Replace the existing header with this updated version -->
 	<header class="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom">
 		<a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
 			<svg class="bi me-2" width="40" height="32">
@@ -82,7 +115,12 @@
 			<span class="fs-4">LLM Prompt Builder</span>
 		</a>
 		
-		<ul class="nav nav-pills">
+		<ul class="nav nav-pills align-items-center">
+			<li class="nav-item me-2">
+				<select id="root-directory" class="form-select">
+					<!-- Options will be populated dynamically -->
+				</select>
+			</li>
 			<li class="nav-item me-2">
 				<button id="toggle-favorites" class="btn btn-outline-primary">Show Favorites Only</button>
 			</li>
@@ -114,6 +152,36 @@
 	if (favorites.length > 0) {
 		showFavoritesOnly = true;
 	}
+	let currentRootIndex = 0;
+	
+	function loadRootDirectories() {
+		$.ajax({
+			url: '/',
+			method: 'POST',
+			data: {action: 'get_roots'},
+			dataType: 'json',
+			success: function (response) {
+				const select = $('#root-directory');
+				select.empty();
+				response.roots.forEach(function (root) {
+					select.append($('<option>', {
+						value: root.index,
+						text: root.path
+					}));
+				});
+				
+				// Set the selected value from localStorage or default to 0
+				const savedRoot = localStorage.getItem('selectedRoot') || 0;
+				select.val(savedRoot);
+				currentRootIndex = parseInt(savedRoot);
+				
+				loadFolders('.', null).then(() => {
+					restoreState();
+				});
+			}
+		});
+	}
+	
 	
 	function saveState() {
 		const openFolders = [];
@@ -189,7 +257,12 @@
 				$.ajax({
 					url: '/',
 					method: 'POST',
-					data: {action: 'get_file_content', path: path, 'source': 'updateSelectedContent'},
+					data: {
+						action: 'get_file_content',
+						rootIndex: currentRootIndex,
+						path: path,
+						'source': 'updateSelectedContent'
+					},
 					dataType: 'json',
 					success: function (response) {
 						addedWholeFiles += path;
@@ -240,7 +313,8 @@
 				method: 'POST',
 				data: {
 					action: 'get_folders',
-					path: path
+					path: path,
+					rootIndex: currentRootIndex
 				},
 				dataType: 'json',
 				success: function (response) {
@@ -314,7 +388,11 @@
 		$.ajax({
 			url: '/',
 			method: 'POST',
-			data: {action: 'get_file_contents', path: path},
+			data: {
+				action: 'get_file_contents',
+				path: path,
+				rootIndex: currentRootIndex
+			},
 			dataType: 'json',
 			success: function (response) {
 				var ul = $('<ul>').addClass('list-unstyled ms-4').hide();
@@ -345,6 +423,15 @@
 	}
 	
 	$(document).ready(function () {
+		loadRootDirectories();
+		
+		$('#root-directory').change(function () {
+			currentRootIndex = parseInt($(this).val());
+			localStorage.setItem('selectedRoot', currentRootIndex);
+			loadFolders('.', null).then(() => {
+				restoreState();
+			});
+		});
 		
 		loadFolders('.', null).then(() => {
 			restoreState();
@@ -364,7 +451,7 @@
 			saveState();
 		});
 		
-		$('#toggle-mode').click(function() {
+		$('#toggle-mode').click(function () {
 			$('body').toggleClass('dark-mode');
 			$(this).find('i').toggleClass('fa-sun fa-moon');
 			localStorage.setItem('darkMode', $('body').hasClass('dark-mode'));

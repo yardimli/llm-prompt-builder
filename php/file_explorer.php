@@ -21,7 +21,7 @@
 		$fullPath = resolvePath($path, $rootDirectory);
 		$folders = [];
 		$files = [];
-		$allowedExtensions = ['js', 'php', 'html', 'css'];
+		$allowedExtensions = ['js', 'php', 'py', 'html', 'css'];
 		$excludedFolders = ['vendor', 'storage', 'node_modules'];
 		$items = scandir($fullPath);
 		foreach ($items as $item) {
