@@ -33,7 +33,15 @@ function getFolders(inputPath, rootIndex) {
 	console.log(fullPath, inputPath, rootIndex);
 	const folders = [];
 	const files = [];
-	const allowedExtensions = ['js', 'php', 'py', 'html', 'css'];
+	const allowedExtensions = ['js', 'jsx', 'ts', 'tsx', 'php', 'py', 'html', 'css',
+		'swift',
+		'xcodeproj',
+		'xcworkspace',
+		'storyboard',
+		'xib',
+		'plist',
+		'xcassets',
+		'playground'];
 	const excludedFolders = ['vendor', 'storage', 'node_modules'];
 	
 	const items = fs.readdirSync(fullPath);
@@ -94,7 +102,15 @@ function getSelectedContent(inputPath, name, rootIndex) {
 	const extension = path.extname(fullPath).slice(1);
 	const fileContents = fs.readFileSync(fullPath, 'utf8');
 	
-	if (['js', 'php', 'py', 'html'].includes(extension)) {
+	if (['js', 'jsx', 'ts', 'tsx', 'php', 'py', 'html',
+		'swift',
+		'xcodeproj',
+		'xcworkspace',
+		'storyboard',
+		'xib',
+		'plist',
+		'xcassets',
+		'playground'].includes(extension)) {
 		if (name.startsWith('Div ID:')) {
 			const divRegex = new RegExp(`<div[^>]*id=["\']${name.slice(8)}["\'][^>]*>.*?<\/div>`, 's');
 			const match = fileContents.match(divRegex);

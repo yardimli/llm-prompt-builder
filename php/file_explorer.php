@@ -21,7 +21,15 @@
 		$fullPath = resolvePath($path, $rootDirectory);
 		$folders = [];
 		$files = [];
-		$allowedExtensions = ['js', 'php', 'py', 'html', 'css'];
+		$allowedExtensions = ['js', 'jsx', 'ts', 'tsx', 'php', 'py', 'html', 'css',
+			'swift',
+			'xcodeproj',
+			'xcworkspace',
+			'storyboard',
+			'xib',
+			'plist',
+			'xcassets',
+			'playground'];
 		$excludedFolders = ['vendor', 'storage', 'node_modules'];
 		$items = scandir($fullPath);
 		foreach ($items as $item) {
