@@ -3,17 +3,20 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
-const config = {
-	// Array of root directories
-	root_directories: [
-		path.resolve(__dirname, '..'),
-		'e:/ComfyUI_windows_portable/ComfyUI/custom_nodes'
-		// Add more paths as needed
-		// 'c:/users/locutus-borg/my-projects/',
-		// '/home/locutus-borg/my-projects/'
-	],
-	server_port: 3000
-};
+let config;
+try {
+	const configFile = fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8');
+	config = JSON.parse(configFile);
+	
+	// Resolve relative paths in root_directories to absolute paths
+	config.root_directories = config.root_directories.map(dir =>
+		path.isAbsolute(dir) ? dir : path.resolve(__dirname, dir)
+	);
+} catch (error) {
+	console.error('Error loading config file, make sure to copy example-config.json to config.json:', error);
+	process.exit(1);
+}
+
 
 function resolvePath(inputPath, rootIndex) {
 	if (rootIndex >= config.root_directories.length) {
@@ -33,16 +36,6 @@ function getFolders(inputPath, rootIndex) {
 	console.log(fullPath, inputPath, rootIndex);
 	const folders = [];
 	const files = [];
-	const allowedExtensions = ['js', 'jsx', 'ts', 'tsx', 'php', 'py', 'html', 'css',
-		'swift',
-		'xcodeproj',
-		'xcworkspace',
-		'storyboard',
-		'xib',
-		'plist',
-		'xcassets',
-		'playground'];
-	const excludedFolders = ['vendor', 'storage', 'node_modules'];
 	
 	const items = fs.readdirSync(fullPath);
 	for (const item of items) {
@@ -50,12 +43,12 @@ function getFolders(inputPath, rootIndex) {
 		const itemFullPath = path.join(fullPath, item);
 		const stats = fs.statSync(itemFullPath);
 		if (stats.isDirectory()) {
-			if (!excludedFolders.includes(item)) {
+			if (!config.excluded_folders.includes(item)) {
 				folders.push(item);
 			}
 		} else if (stats.isFile()) {
 			const extension = path.extname(itemFullPath).slice(1);
-			if (allowedExtensions.includes(extension)) {
+			if (config.allowed_extensions.includes(extension)) {
 				files.push(item);
 			}
 		}
@@ -102,15 +95,7 @@ function getSelectedContent(inputPath, name, rootIndex) {
 	const extension = path.extname(fullPath).slice(1);
 	const fileContents = fs.readFileSync(fullPath, 'utf8');
 	
-	if (['js', 'jsx', 'ts', 'tsx', 'php', 'py', 'html',
-		'swift',
-		'xcodeproj',
-		'xcworkspace',
-		'storyboard',
-		'xib',
-		'plist',
-		'xcassets',
-		'playground'].includes(extension)) {
+	if (config.allowed_extensions.includes(extension)) {
 		if (name.startsWith('Div ID:')) {
 			const divRegex = new RegExp(`<div[^>]*id=["\']${name.slice(8)}["\'][^>]*>.*?<\/div>`, 's');
 			const match = fileContents.match(divRegex);

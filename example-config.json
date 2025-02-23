@@ -1,0 +1,30 @@
+{
+  "root_directories": [
+    "path/to/your/first/directory",
+    "e:/ComfyUI_windows_portable/ComfyUI/custom_nodes"
+  ],
+  "allowed_extensions": [
+    "js",
+    "jsx",
+    "ts",
+    "tsx",
+    "php",
+    "py",
+    "html",
+    "css",
+    "swift",
+    "xcodeproj",
+    "xcworkspace",
+    "storyboard",
+    "xib",
+    "plist",
+    "xcassets",
+    "playground"
+  ],
+  "excluded_folders": [
+    "vendor",
+    "storage",
+    "node_modules"
+  ],
+  "server_port": 3000
+}

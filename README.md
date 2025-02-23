@@ -1,7 +1,13 @@
 # llm-prompt-builder
-LLM Prompt Builder - A NodeJS and PHP Tool to help query LLM's like ChatGPT and Claude for help with writing code.
+LLM Prompt Builder - A *NodeJS* and **PHP** Tool to help build queries to send to LLM's from openAI, Anthropic, etc. for help with writing code.
 
-on windows can start the node with start_server_port_3000.bat
+For *NodeJS*, copy example-config.josn to config.json and set your root folders and excluded folders plus any extensions you want to include.
+
+on windows can start the node with
+```bash
+  start_server.bat
+```
+
 
 on mac
 
