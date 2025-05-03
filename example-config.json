@@ -26,6 +26,8 @@
     "htaccess"
   ],
   "excluded_folders": [
+    ".git",
+    ".idea",
     "vendor",
     "storage",
     "node_modules"

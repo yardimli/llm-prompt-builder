@@ -44,9 +44,10 @@ function getFolders(inputPath, rootIndex) {
 	
 	try {
 		const items = fs.readdirSync(fullPath);
+		console.log('Items in directory:', fullPath);
 		for (const item of items) {
 			if (item === '.' || item === '..') continue;
-			
+
 			const itemFullPath = path.join(fullPath, item);
 			let stats;
 			try {
@@ -62,10 +63,25 @@ function getFolders(inputPath, rootIndex) {
 					folders.push(item);
 				}
 			} else if (stats.isFile()) {
-				const extension = path.extname(itemFullPath).slice(1);
-				if (config.allowed_extensions.includes(extension)) {
+				const ext = path.extname(itemFullPath).slice(1);
+				let base = path.basename(itemFullPath);
+				//remove first "." from base
+				if (base.startsWith('.')) {
+					base = base.slice(1);
+				}
+				
+				if (
+					config.allowed_extensions.includes(ext) ||
+					( ext === '' && config.allowed_extensions.includes(base) )
+				) {
 					files.push(item);
 				}
+
+				// doesnt work with .htaccss like patterns
+				// const extension = path.extname(itemFullPath).slice(1);
+				// if (config.allowed_extensions.includes(extension)) {
+				// 	files.push(item);
+				// }
 			}
 		}
 	} catch (error) {
