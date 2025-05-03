@@ -116,7 +116,7 @@ function searchFiles(startPath, searchTerm, rootIndex) {
 		}
 		
 		for (const item of items) {
-			if (item === '.' || item === '..' || item.startsWith('.')) continue;
+			if (item === '.' || item === '..') continue;
 			
 			const itemFullPath = path.join(currentDir, item);
 			let stats;
