@@ -45,7 +45,7 @@ function getFolders(inputPath, rootIndex) {
 	try {
 		const items = fs.readdirSync(fullPath);
 		for (const item of items) {
-			if (item === '.' || item === '..' || item.startsWith('.')) continue;
+			if (item === '.' || item === '..') continue;
 			
 			const itemFullPath = path.join(fullPath, item);
 			let stats;
@@ -213,8 +213,23 @@ const server = http.createServer((req, res) => {
 			res.end(content);
 		});
 	} else {
-		res.writeHead(404);
-		res.end('Not Found');
+		fs.readFile(path.join(__dirname, parsedUrl.pathname), (err, content) => {
+			if (err) {
+				res.writeHead(404);
+				res.end('Not Found');
+				return;
+			}
+			const ext = path.extname(parsedUrl.pathname).slice(1);
+			const mimeTypes = {
+				html: 'text/html',
+				js: 'application/javascript',
+				css: 'text/css',
+				json: 'application/json',
+				txt: 'text/plain',
+			};
+			res.writeHead(200, {'Content-Type': mimeTypes[ext] || 'application/octet-stream'});
+			res.end(content);
+		});
 	}
 });
 

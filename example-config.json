@@ -6,6 +6,7 @@
   "allowed_extensions": [
     "js",
     "jsx",
+    "json",
     "ts",
     "tsx",
     "php",
@@ -19,7 +20,10 @@
     "xib",
     "plist",
     "xcassets",
-    "playground"
+    "playground",
+    "cs",
+    "csproj",
+    "htaccess"
   ],
   "excluded_folders": [
     "vendor",

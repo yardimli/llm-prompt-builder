@@ -4,67 +4,46 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>LLM Prompt Builder</title>
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
-	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-	<style>
-		/* ... (keep all existing CSS) ... */
-		#root-directory { min-width: 200px; }
-		body.dark-mode #root-directory { background-color: #444; color: #fff; border-color: #555; }
-		.folder, .file { cursor: pointer; }
-		.folder::before { content: "\f07b"; /* Folder icon */ font-family: "Font Awesome 6 Free"; /* Updated Font Awesome family */ font-weight: 900; /* Required for solid icons */ margin-right: 5px; }
-		.folder.open::before { content: "\f07c"; /* Folder open icon */ }
-		.file::before { content: "\f15b"; /* File icon */ font-family: "Font Awesome 6 Free"; /* Updated Font Awesome family */ font-weight: 900; /* Required for solid icons */ margin-right: 5px; }
-		.checkbox-wrapper { display: inline-block; width: 20px; /* Adjust as needed */ vertical-align: middle; /* Align checkbox nicely */}
-		#file-tree { height: 80vh; max-height: 80vh; overflow: auto; border: 1px solid #ccc; padding: 10px; /* Add some padding */ }
-		#selected-content { border: 1px solid #ccc; height: 80vh; max-height: 80vh; width: 100%; font-family: monospace; /* Good for code */ font-size: 12px; }
-		.folder-controls { /* Wrapper for folder icons */ display: inline-block; vertical-align: middle; margin-right: 5px; }
-		/* --- STYLE ALL ICONS --- */
-		.folder-star, .folder-search-icon, .folder-clear-icon { cursor: pointer; color: #ccc; margin-left: 4px; /* Space between icons */ }
-		.folder-star.favorite { color: gold; }
-		/* --- HOVER STYLES --- */
-		.folder-search-icon:hover, .folder-star:hover, .folder-clear-icon:hover { color: #888; /* Hover effect */ }
-		/* --- DARK MODE ICON STYLES --- */
-		body.dark-mode .folder-star, body.dark-mode .folder-search-icon, body.dark-mode .folder-clear-icon { color: #777; }
-		body.dark-mode .folder-star.favorite { color: gold; }
-		body.dark-mode .folder-search-icon:hover, body.dark-mode .folder-star:hover, body.dark-mode .folder-clear-icon:hover { color: #bbb; }
-		/* Dark Mode Styles */
-		body.dark-mode { background-color: #333; color: #fff; }
-		body.dark-mode #file-tree, body.dark-mode #selected-content, body.dark-mode .modal-content /* Dark mode modal */ { border-color: #555; background-color: #444; color: #fff; }
-		body.dark-mode .modal-header, body.dark-mode .modal-footer { border-color: #555; }
-		body.dark-mode .form-control { /* Dark mode inputs */ background-color: #555; color: #fff; border-color: #666; }
-		body.dark-mode .form-control::placeholder { color: #aaa; }
-		body.dark-mode .form-control:focus { background-color: #666; color: #fff; border-color: #888; box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); /* Optional focus glow */ }
-		body.dark-mode .btn-close { /* Dark mode close button */ filter: invert(1) grayscale(100%) brightness(200%); }
-		body.dark-mode .nav-link { color: #fff; }
-		body.dark-mode .btn-outline-primary { color: #fff; border-color: #fff; }
-		body.dark-mode .btn-outline-primary:hover { background-color: #0d6efd; color: #fff; }
-		body.dark-mode .fs-4 { color: #fff; }
-		/* Ensure nested lists have proper indentation */
-		#file-tree ul { padding-left: 20px; /* Adjust indentation for nested lists */ }
-		#file-tree li { list-style-type: none; /* Remove default bullets */ margin-bottom: 2px; /* Spacing between items */ }
-		/* Add spinner style */
-		.spinner-border-sm { width: 1rem; height: 1rem; border-width: .2em; vertical-align: text-bottom; /* Align better */ margin-left: 5px; /* Space from button text */ }
-
-		
-	</style>
+	<link rel="stylesheet" href="index.css">
 </head>
-<body class=""> <!-- Start without dark-mode potentially -->
-<div class="container-fluid mt-2"> <!-- Use container-fluid for better width usage -->
+<body class="">
+<div class="container-fluid mt-2">
 	<header class="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom">
 		<a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-decoration-none">
-			<!-- SVG removed for brevity, ensure body.dark-mode .fs-4 handles title color -->
-			<span class="fs-4 text-body">LLM Prompt Builder</span> <!-- Use text-body for auto dark/light -->
+			<span class="fs-4 text-body">LLM Prompt Builder</span>
 		</a>
+		
 		<ul class="nav nav-pills align-items-center">
+			<!-- Workspace Management Dropdown -->
+			<li class="nav-item dropdown me-2">
+				<button class="btn btn-outline-secondary dropdown-toggle" type="button" id="workspaceMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+					Workspaces
+				</button>
+				<ul class="dropdown-menu" aria-labelledby="workspaceMenuButton" id="workspace-dropdown">
+					<!-- Dynamic content here -->
+					<li><a class="dropdown-item" href="#" id="save-workspace-as">Save Current As...</a></li>
+					<li><a class="dropdown-item disabled" href="#" id="update-workspace">Update '<span id="update-workspace-name"></span>'</a></li>
+					<li><a class="dropdown-item disabled" href="#" id="delete-workspace">Delete '<span id="delete-workspace-name"></span>'</a></li>
+					<li><hr class="dropdown-divider"></li>
+					<!-- Saved workspaces will be listed here -->
+				</ul>
+			</li>
+			<li class="nav-item me-2">
+				<span id="workspace-status"></span> <!-- To show loaded workspace name -->
+			</li>
+			<!-- End Workspace Management -->
+			
 			<li class="nav-item me-2">
 				<select id="root-directory" class="form-select">
 					<!-- Options will be populated dynamically -->
 				</select>
 			</li>
 			<li class="nav-item me-2">
-				<button id="toggle-favorites" class="btn btn-outline-primary">Show Favorites Only</button> <!-- Default text -->
+				<button id="toggle-favorites" class="btn btn-outline-primary">Show Favorites Only</button>
 			</li>
 			<li class="nav-item me-2">
 				<button id="loading-indicator" class="btn btn-outline-secondary" style="display: none;">
@@ -76,22 +55,23 @@
 			</li>
 			<li class="nav-item">
 				<button id="toggle-mode" class="btn btn-outline-primary">
-					<i class="fas fa-sun"></i> <!-- Default to sun (light mode) -->
+					<i class="fas fa-sun"></i>
 				</button>
 			</li>
 		</ul>
 	</header>
+	
 	<div class="row">
-		<div class="col-lg-5 col-md-6"> <!-- Responsive column sizing -->
+		<div class="col-lg-5 col-md-6">
 			<div id="file-tree"></div>
 		</div>
-		<div class="col-lg-7 col-md-6"> <!-- Responsive column sizing -->
-			<textarea id="selected-content" class="form-control"></textarea> <!-- Add form-control for better styling -->
+		<div class="col-lg-7 col-md-6">
+			<textarea id="selected-content" class="form-control"></textarea>
 		</div>
 	</div>
 </div>
 
-<!-- Search Modal -->
+<!-- Search Modal (keep existing) -->
 <div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
 	<div class="modal-dialog">
 		<div class="modal-content">
@@ -116,39 +96,202 @@
 <!-- End Search Modal -->
 
 <script>
-	// --- START: Default to Favorites Mode ---
-	// Check localStorage for the favorite mode preference. Default to true (show favorites only).
+	// --- Global State ---
 	let showFavoritesOnly = localStorage.getItem('showFavoritesMode') === null ? true : (localStorage.getItem('showFavoritesMode') === 'true');
-	// --- END: Default to Favorites Mode ---
-	
 	let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
-	let currentRootIndex = 0; // Will be set properly
-	let currentSearchFolderPath = null; // Store path for modal search
-	let searchModal = null; // Bootstrap modal instance
+	let currentRootIndex = 0;
+	let currentSearchFolderPath = null;
+	let searchModal = null;
+	let workspaces = {}; // Object to hold all workspaces
+	let currentWorkspaceName = null; // Name of the currently loaded workspace
+	const WORKSPACE_STORAGE_KEY = 'llmHelperWorkspaces';
 	
 	// --- Utility Functions ---
 	function showLoading(message = 'Loading...') {
 		$('#loading-indicator').text(message).prepend('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ').show();
 	}
-	
 	function hideLoading() {
 		$('#loading-indicator').hide();
 	}
-	
 	function getParentPath(filePath) {
 		if (!filePath || !filePath.includes('/')) {
-			return '.'; // Root level file or invalid path
+			return '.';
 		}
 		return filePath.substring(0, filePath.lastIndexOf('/'));
 	}
 	
+	// --- Workspace Management ---
+	
+	function loadWorkspacesFromStorage() {
+		const storedWorkspaces = localStorage.getItem(WORKSPACE_STORAGE_KEY);
+		workspaces = storedWorkspaces ? JSON.parse(storedWorkspaces) : {};
+		console.log("Loaded workspaces:", workspaces);
+	}
+	
+	function saveWorkspacesToStorage() {
+		localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(workspaces));
+		console.log("Saved workspaces:", workspaces);
+	}
+	
+	function updateWorkspaceDropdown() {
+		const dropdown = $('#workspace-dropdown');
+		// Clear existing workspace items (keep static items like Save As, Update, Delete, divider)
+		dropdown.find('.saved-workspace-item').remove();
+		dropdown.find('.no-workspaces-item').remove(); // Remove 'no workspaces' message if present
+		
+		const sortedNames = Object.keys(workspaces).sort((a, b) => a.localeCompare(b));
+		
+		if (sortedNames.length === 0) {
+			$('<li>').addClass('no-workspaces-item')
+				.append($('<span class="dropdown-item-text text-muted ps-3">No saved workspaces</span>'))
+				.insertAfter(dropdown.find('.dropdown-divider'));
+		} else {
+			sortedNames.forEach(name => {
+				const li = $('<li>').addClass('saved-workspace-item');
+				const link = $('<a>').addClass('dropdown-item load-workspace').attr('href', '#').text(name);
+				link.data('workspaceName', name); // Store name in data attribute
+				if (name === currentWorkspaceName) {
+					link.addClass('active'); // Highlight the active workspace
+				}
+				li.append(link);
+				// Insert after the divider
+				li.insertAfter(dropdown.find('.dropdown-divider'));
+			});
+		}
+		
+		// Update state of Update/Delete buttons
+		if (currentWorkspaceName && workspaces[currentWorkspaceName]) {
+			$('#update-workspace-name').text(currentWorkspaceName);
+			$('#delete-workspace-name').text(currentWorkspaceName);
+			$('#update-workspace').removeClass('disabled');
+			$('#delete-workspace').removeClass('disabled');
+			$('#workspace-status').text(`Loaded: ${currentWorkspaceName}`); // Show loaded name
+		} else {
+			$('#update-workspace').addClass('disabled');
+			$('#delete-workspace').addClass('disabled');
+			$('#workspace-status').text(''); // Clear status
+		}
+	}
+	
+	function getCurrentStateForWorkspace() {
+		const openFolders = [];
+		$('#file-tree .folder.open').each(function () {
+			openFolders.push($(this).data('path'));
+		});
+		
+		const selectedFiles = [];
+		$('#file-tree input[type="checkbox"]:checked').each(function () {
+			selectedFiles.push($(this).data('path'));
+		});
+		
+		return {
+			rootIndex: currentRootIndex,
+			openFolders: openFolders,
+			selectedFiles: selectedFiles,
+			showFavoritesOnly: showFavoritesOnly // Save favorites view state
+		};
+	}
+	
+	function saveCurrentWorkspace(name) {
+		if (!name) {
+			alert("Workspace name cannot be empty.");
+			return;
+		}
+		const workspaceData = getCurrentStateForWorkspace();
+		workspaces[name] = workspaceData;
+		saveWorkspacesToStorage();
+		currentWorkspaceName = name; // Set the newly saved workspace as current
+		updateWorkspaceDropdown(); // Refresh UI
+		alert(`Workspace "${name}" saved.`);
+	}
+	
+	async function loadWorkspace(name) { // Make the function async
+		if (!workspaces[name]) {
+			console.error(`Workspace "${name}" not found.`);
+			alert(`Error: Workspace "${name}" not found.`);
+			return;
+		}
+		console.log(`Loading workspace: ${name}`);
+		showLoading(`Loading workspace "${name}"...`);
+		const ws = workspaces[name];
+		console.log("Workspace data to load:", ws);
+		
+		try {
+			// Set global states from workspace
+			currentWorkspaceName = name; // Mark as loaded *before* async ops
+			currentRootIndex = ws.rootIndex;
+			// Use nullish coalescing for safety if showFavoritesOnly wasn't saved previously
+			showFavoritesOnly = ws.showFavoritesOnly ?? false;
+			
+			// Update UI elements related to global state
+			$('#root-directory').val(currentRootIndex);
+			$('#toggle-favorites').text(showFavoritesOnly ? 'Show All' : 'Show Favorites Only');
+			localStorage.setItem('selectedRoot', currentRootIndex); // Persist root selection
+			localStorage.setItem('showFavoritesMode', showFavoritesOnly); // Persist fav mode
+			
+			// Load folders for the correct root, await completion
+			// Pass the workspace's open/selected state as overrides
+			await loadFolders('.', null, ws.openFolders, ws.selectedFiles);
+			console.log(`Root folders loaded for workspace "${name}". Restoring state...`);
+			
+			// Restore state using workspace data, await completion
+			// Pass the workspace's open/selected state again for restoration logic
+			await restoreState(ws.openFolders, ws.selectedFiles);
+			console.log(`State restored for workspace "${name}".`);
+			
+			// --- IMPORTANT ---
+			// restoreState now calls restoreCheckedStates(true, ...), which calls updateSelectedContent.
+			// So, updateSelectedContent() is implicitly called *during* the await restoreState().
+			// We *do* need to save the view state *after* everything is restored.
+			saveDefaultViewState(); // Save the fully restored state as the current default view
+			console.log(`Default view state saved after loading workspace "${name}".`);
+			
+			updateWorkspaceDropdown(); // Update dropdown state (active item, buttons)
+			console.log(`Workspace "${name}" loaded successfully.`);
+			
+		} catch (error) {
+			console.error(`Error loading workspace "${name}":`, error);
+			alert(`Error loading workspace "${name}". Check console.`);
+			// Reset state? Maybe clear currentWorkspaceName?
+			currentWorkspaceName = null;
+			updateWorkspaceDropdown();
+		} finally {
+			hideLoading(); // Ensure loading is hidden regardless of success/failure
+		}
+	}
+	
+	function deleteWorkspace(name) {
+		if (!workspaces[name]) {
+			alert(`Workspace "${name}" not found.`);
+			return;
+		}
+		if (confirm(`Are you sure you want to delete the workspace "${name}"?`)) {
+			delete workspaces[name];
+			saveWorkspacesToStorage();
+			if (currentWorkspaceName === name) {
+				currentWorkspaceName = null; // Clear if the deleted one was active
+			}
+			updateWorkspaceDropdown(); // Refresh UI
+			alert(`Workspace "${name}" deleted.`);
+		}
+	}
+	
+	// Call this function when the user makes a change that invalidates the current workspace state
+	function markWorkspaceAsDirty() {
+		if (currentWorkspaceName) {
+			console.log(`Workspace "${currentWorkspaceName}" is now dirty.`);
+			currentWorkspaceName = null; // Clear the current workspace name
+			updateWorkspaceDropdown(); // Update UI (remove active state, disable update/delete)
+		}
+	}
+	
+	
+	// --- Core File Tree Logic ---
+	
 	function loadRootDirectories() {
 		showLoading('Loading roots...');
 		$.ajax({
-			url: '/',
-			method: 'POST',
-			data: { action: 'get_roots' },
-			dataType: 'json',
+			url: '/', method: 'POST', data: { action: 'get_roots' }, dataType: 'json',
 			success: function (response) {
 				const select = $('#root-directory');
 				select.empty();
@@ -157,7 +300,8 @@
 				});
 				const savedRoot = localStorage.getItem('selectedRoot') || 0;
 				select.val(savedRoot);
-				loadFoldersAndRestoreState(parseInt(savedRoot)); // Load initial state
+				// Load initial state - DO NOT pass workspace overrides here
+				loadFoldersAndRestoreState(parseInt(savedRoot));
 			},
 			error: function (xhr, status, error) {
 				console.error("Error loading root directories:", error);
@@ -167,136 +311,164 @@
 		});
 	}
 	
-	// Combined function to load folders for a root and restore state
-	function loadFoldersAndRestoreState(rootIndex) {
+	// Modified to accept optional overrides for open/selected state (used by workspace loading)
+	async function loadFoldersAndRestoreState(rootIndex, openFoldersOverride = null, selectedFilesOverride = null) {
 		showLoading('Loading files...');
-		currentRootIndex = rootIndex; // Set current root index
-		localStorage.setItem('selectedRoot', currentRootIndex); // Save selection
-		loadFolders('.', null) // Load root level
-			.then(() => {
-				restoreState(); // Restore open folders and selections AFTER root is loaded
-			})
-			.catch(error => {
-				console.error("Error loading initial folders:", error);
-				alert("Error loading file tree. Check server logs.");
-				hideLoading(); // Ensure loading is hidden on error
-			});
+		currentRootIndex = rootIndex;
+		localStorage.setItem('selectedRoot', currentRootIndex); // Persist root selection
+		
+		try {
+			// Load root level folders first, await its completion
+			// Pass overrides if they exist (though usually null for default load)
+			await loadFolders('.', null, openFoldersOverride, selectedFilesOverride);
+			console.log(`Root folders loaded for index ${rootIndex}. Restoring state...`);
+			
+			// Restore state *after* root is loaded, await its completion
+			// Pass overrides if they exist (usually restoring from localStorage here)
+			await restoreState(openFoldersOverride, selectedFilesOverride);
+			console.log(`State restored for index ${rootIndex}.`);
+			
+			// --- IMPORTANT ---
+			// As in loadWorkspace, updateSelectedContent is called implicitly by restoreState.
+			// Save the default view state *after* restoration is complete.
+			saveDefaultViewState();
+			console.log(`Default view state saved after restoration for root ${rootIndex}.`);
+			
+			// Hide loading *after* everything is restored and saved
+			hideLoading();
+			
+		} catch (error) {
+			console.error("Error loading initial folders/restoring state:", error);
+			alert("Error loading file tree. Check server logs.");
+			hideLoading(); // Ensure loading is hidden on error
+		}
 	}
 	
-	function saveState() {
+	// DEPRECATED - State is now saved explicitly for workspaces or implicitly for default view
+	// function saveState() { ... } // We'll call specific save functions instead
+	
+	// Helper to get open folders (used by saveState and saveCurrentWorkspace)
+	function getOpenFoldersState() {
 		const openFolders = [];
-		$('#file-tree .folder.open').each(function () { // Scope selector to file-tree
+		$('#file-tree .folder.open').each(function () {
 			openFolders.push($(this).data('path'));
 		});
-		localStorage.setItem(`openFolders_${currentRootIndex}`, JSON.stringify(openFolders)); // Root-specific
-		
-		const selectedItems = [];
-		$('#file-tree input[type="checkbox"]:checked').each(function () { // Scope selector
-			selectedItems.push({ path: $(this).data('path') });
-		});
-		localStorage.setItem(`selectedItems_${currentRootIndex}`, JSON.stringify(selectedItems)); // Root-specific
-		
-		localStorage.setItem('favorites', JSON.stringify(favorites)); // Save favorites globally
-		localStorage.setItem('darkMode', $('body').hasClass('dark-mode')); // Save dark mode
-		// --- START: Save Favorites Mode ---
-		localStorage.setItem('showFavoritesMode', showFavoritesOnly); // Save the current favorites view mode
-		// --- END: Save Favorites Mode ---
-		console.log('State saved for root', currentRootIndex);
+		return openFolders;
 	}
 	
-	// Function to recursively open folders and return a promise
-	async function openFolderRecursively(pathsToOpen) {
+	// Helper to get selected files (used by saveState and saveCurrentWorkspace)
+	function getSelectedFilesState() {
+		const selectedItems = [];
+		$('#file-tree input[type="checkbox"]:checked').each(function () {
+			selectedItems.push($(this).data('path')); // Just store the path string
+		});
+		return selectedItems;
+	}
+	
+	// Save the *default* view state (non-workspace) to localStorage
+	function saveDefaultViewState() {
+		const openFolders = getOpenFoldersState();
+		localStorage.setItem(`openFolders_${currentRootIndex}`, JSON.stringify(openFolders));
+		
+		const selectedFiles = getSelectedFilesState();
+		localStorage.setItem(`selectedItems_${currentRootIndex}`, JSON.stringify(selectedFiles.map(path => ({ path })))); // Keep original format for compatibility
+		
+		localStorage.setItem('favorites', JSON.stringify(favorites));
+		localStorage.setItem('darkMode', $('body').hasClass('dark-mode'));
+		localStorage.setItem('showFavoritesMode', showFavoritesOnly);
+		console.log('Default view state saved for root', currentRootIndex);
+	}
+	
+	
+	async function openFolderRecursively(pathsToOpen, openFoldersOverride = null, selectedFilesOverride = null) {
 		if (!pathsToOpen || pathsToOpen.length === 0) {
-			return Promise.resolve(); // Base case: no more paths
+			return Promise.resolve();
 		}
-		const path = pathsToOpen.shift(); // Process the first path
-		
-		// Skip trying to open the pseudo-root '.'
+		const path = pathsToOpen.shift();
 		if (path === '.') {
-			return openFolderRecursively(pathsToOpen);
+			return openFolderRecursively(pathsToOpen, openFoldersOverride, selectedFilesOverride);
 		}
+		const folderElement = $(`#file-tree .folder[data-path="${path}"]`);
 		
-		// Use attribute selector for potentially complex paths
-		const folderElement = $(`#file-tree .folder[data-path="${path}"]`); // Use async/await directly instead of explicit Promise constructor
-		
+		// Use async/await directly
 		if (folderElement.length && !folderElement.hasClass('open')) {
-			folderElement.addClass('open'); // Add class before loading
+			folderElement.addClass('open');
 			try {
-				console.log(`Recursively opening: ${path}`); // Debug log
-				await loadFolders(path, folderElement); // Successfully loaded/opened, now process remaining paths
-				await openFolderRecursively(pathsToOpen);
+				console.log(`Recursively opening: ${path}`);
+				// Pass overrides down if they exist
+				await loadFolders(path, folderElement, openFoldersOverride, selectedFilesOverride);
+				await openFolderRecursively(pathsToOpen, openFoldersOverride, selectedFilesOverride);
 			} catch (err) {
 				console.error(`Error loading folder ${path} during recursive open:`, err);
-				// Decide how to handle error: reject or continue? Let's continue.
-				await openFolderRecursively(pathsToOpen); // Try next even if one fails
+				await openFolderRecursively(pathsToOpen, openFoldersOverride, selectedFilesOverride);
 			}
 		} else if (folderElement.length && folderElement.hasClass('open')) {
-			// Already open, process remaining paths
-			console.log(`Already open, continuing recursion: ${path}`); // Debug log
-			await openFolderRecursively(pathsToOpen);
+			console.log(`Already open, continuing recursion: ${path}`);
+			await openFolderRecursively(pathsToOpen, openFoldersOverride, selectedFilesOverride);
 		} else {
-			// Folder element doesn't exist (maybe due to filtering/favorites/error?)
 			console.warn(`Folder element not found for path: ${path}. Skipping in recursive open.`);
-			await openFolderRecursively(pathsToOpen); // Continue with the rest
+			await openFolderRecursively(pathsToOpen, openFoldersOverride, selectedFilesOverride);
 		}
 	}
 	
-	// --- START: Modified restoreState ---
-	async function restoreState() {
-		console.log(`Restoring state for root ${currentRootIndex}`);
-		const openFoldersFromStorage = JSON.parse(localStorage.getItem(`openFolders_${currentRootIndex}`)) || [];
-		const selectedItems = JSON.parse(localStorage.getItem(`selectedItems_${currentRootIndex}`)) || [];
+	// Modified restoreState to accept overrides
+	async function restoreState(openFoldersOverride = null, selectedFilesOverride = null) { // Add async
+		console.log(`Restoring state for root ${currentRootIndex}. Overrides provided:`, !!openFoldersOverride, !!selectedFilesOverride);
 		
-		// Determine all folders that need to be open:
-		// 1. Folders the user explicitly left open.
-		// 2. Parent folders of all selected files.
-		const pathsToEnsureOpenSet = new Set(openFoldersFromStorage);
+		// Determine which lists to use: overrides or localStorage defaults
+		const openFoldersToUse = openFoldersOverride !== null ? openFoldersOverride : JSON.parse(localStorage.getItem(`openFolders_${currentRootIndex}`)) || [];
+		const selectedItemsToUse = selectedFilesOverride !== null
+			? selectedFilesOverride.map(path => ({ path })) // Convert paths to object format if using override
+			: JSON.parse(localStorage.getItem(`selectedItems_${currentRootIndex}`)) || [];
 		
-		selectedItems.forEach(item => {
+		const pathsToEnsureOpenSet = new Set(openFoldersToUse);
+		selectedItemsToUse.forEach(item => {
 			let parentPath = getParentPath(item.path);
 			while (parentPath && parentPath !== '.') {
 				pathsToEnsureOpenSet.add(parentPath);
-				parentPath = getParentPath(parentPath); // Add all ancestor paths
-			}
-			if (parentPath === '.') { // Ensure root files don't cause issues later
-				// No folder needs opening for root files
+				parentPath = getParentPath(parentPath);
 			}
 		});
 		
 		const pathsToEnsureOpen = [...pathsToEnsureOpenSet];
-		pathsToEnsureOpen.sort((a, b) => a.split('/').length - b.split('/').length); // Sort by depth
+		pathsToEnsureOpen.sort((a, b) => a.split('/').length - b.split('/').length);
+		console.log("Paths to ensure open:", pathsToEnsureOpen);
 		
-		console.log("Paths to ensure open:", pathsToEnsureOpen); // Debug log
+		// Don't show loading here, it's handled by the caller
 		
-		showLoading('Restoring view...');
 		try {
-			await openFolderRecursively([...pathsToEnsureOpen]); // Pass a copy and wait
+			// Await the completion of recursively opening folders
+			// Pass overrides down to recursive opening if they exist
+			await openFolderRecursively([...pathsToEnsureOpen], openFoldersOverride, selectedFilesOverride); // Add await
 			console.log("Finished opening folders, restoring checks.");
-			restoreCheckedStates(true); // Update content after checks are restored
+			
+			// Pass selected items override to restoreCheckedStates
+			// This function is synchronous itself, but we call it after await
+			// The 'true' argument ensures updateSelectedContent() is called internally
+			restoreCheckedStates(true, selectedFilesOverride);
+			
 		} catch (error) {
 			console.error("Error during recursive folder opening:", error);
-			// Still try to restore checks for whatever loaded
-			restoreCheckedStates(true);
+			// Still try to restore checks even if some folders failed to open
+			restoreCheckedStates(true, selectedFilesOverride);
 		} finally {
-			hideLoading(); // Ensure loading is hidden
+			// hideLoading() is called by the caller (loadFoldersAndRestoreState or loadWorkspace)
+			console.log("restoreState finished."); // Add log for clarity
 		}
 	}
-	// --- END: Modified restoreState ---
 	
-	
-	function restoreCheckedStates(updateContent = false) {
-		const selectedItems = JSON.parse(localStorage.getItem(`selectedItems_${currentRootIndex}`)) || [];
+	// Modified restoreCheckedStates to accept override
+	function restoreCheckedStates(updateContent = false, selectedFilesOverride = null) {
+		// Determine which list of selected items to use
+		const selectedItems = selectedFilesOverride !== null
+			? selectedFilesOverride.map(path => ({ path })) // Convert paths to object format
+			: JSON.parse(localStorage.getItem(`selectedItems_${currentRootIndex}`)) || [];
+		
 		console.log('Restoring checked items:', selectedItems.map(i => i.path));
+		$('#file-tree input[type="checkbox"]').prop('checked', false); // Uncheck all visible first
 		
-		// First, uncheck *all* visible items (to handle items that were removed from saved state)
-		// Note: This only affects checkboxes currently rendered in the DOM.
-		$('#file-tree input[type="checkbox"]').prop('checked', false);
-		
-		// Now, check the items that *are* in the saved state
-		// This relies on the parent folders having been opened by the enhanced restoreState
 		let checksRestoredCount = 0;
 		selectedItems.forEach(function (item) {
-			// Use attribute selector for special characters in path
 			const checkbox = $(`#file-tree input[type="checkbox"][data-path="${item.path}"]`);
 			if (checkbox.length) {
 				checkbox.prop('checked', true);
@@ -318,40 +490,30 @@
 	// --- REVISED updateSelectedContent using async/await and Promise.all ---
 	async function updateSelectedContent() {
 		const checkedBoxes = $('#file-tree input[type="checkbox"]:checked');
-		const contentParts = [];
 		const requestPromises = [];
-		
 		console.log(`updateSelectedContent called. Found ${checkedBoxes.length} checked boxes.`);
 		
 		if (checkedBoxes.length === 0) {
 			$('#selected-content').val('');
 			console.log('Cleared selected content (no boxes checked).');
-			// saveState(); // Save the empty selection state - Saving now happens on interaction
-			return; // Nothing more to do
+			// Don't save default state here automatically, only on explicit actions or workspace save
+			return;
 		}
 		
 		showLoading(`Loading ${checkedBoxes.length} file(s)...`);
-		
 		checkedBoxes.each(function () {
 			const path = $(this).data('path');
 			console.log('Queueing fetch for:', path);
-			// Create a promise for each AJAX request
 			const promise = $.ajax({
-					url: '/',
-					method: 'POST',
-					data: {
-						action: 'get_file_content',
-						rootIndex: currentRootIndex,
-						path: path,
-						source: 'updateSelectedContent' // Add source info
-					},
+					url: '/', method: 'POST',
+					data: { action: 'get_file_content', rootIndex: currentRootIndex, path: path, source: 'updateSelectedContent' },
 					dataType: 'json'
 				})
-				.then(response => { // On success, return the formatted content string
+				.then(response => {
 					console.log('Success fetching:', path);
 					return `${path}:\n\n${response.content}\n\n`;
 				})
-				.catch(error => { // On error, return a formatted error string
+				.catch(error => {
 					console.error(`Error fetching content for ${path}:`, error.statusText || error);
 					const errorMessage = error.responseJSON?.error || error.statusText || 'Unknown error';
 					return `/* --- ERROR loading ${path}: ${errorMessage} --- */\n\n`;
@@ -360,28 +522,22 @@
 		});
 		
 		try {
-			// Wait for all requests to settle (either succeed or fail)
 			const results = await Promise.all(requestPromises);
-			// Join the results (which are already formatted strings)
 			$('#selected-content').val(results.join(''));
 			console.log('Finished updating selected content.');
-			// saveState(); // Save state after successful update? Better on interaction.
+			// Don't save default state here automatically
 		} catch (error) {
-			// This catch block might not be strictly necessary if individual promises handle errors
 			console.error("Unexpected error during Promise.all in updateSelectedContent:", error);
 			$('#selected-content').val("/* --- An unexpected error occurred while loading file contents. --- */");
 		} finally {
 			hideLoading();
 		}
 	}
-	// --- End of REVISED updateSelectedContent ---
-	
 	
 	function isPathOrParentFavorite(path) {
-		if (!path) return false; // Handle null/undefined path
+		if (!path) return false;
 		if (favorites.includes(path)) return true;
 		const parts = path.split('/');
-		// Check parent paths (e.g., for 'a/b/c', check 'a' and 'a/b')
 		for (let i = 1; i < parts.length; i++) {
 			const parentPath = parts.slice(0, i).join('/');
 			if (favorites.includes(parentPath)) return true;
@@ -389,194 +545,190 @@
 		return false;
 	}
 	
-	
-	function loadFolders(path, element) {
-		// Return a promise that resolves when loading is complete
+	// Modified loadFolders slightly to integrate with overrides
+	function loadFolders(path, element, openFoldersOverride = null, selectedFilesOverride = null) {
 		return new Promise((resolve, reject) => {
 			$.ajax({
-				url: '/',
-				method: 'POST',
+				url: '/', method: 'POST',
 				data: { action: 'get_folders', path: path, rootIndex: currentRootIndex },
 				dataType: 'json',
 				success: function (response) {
 					if (!response || !response.folders || !response.files) {
 						console.warn(`Received invalid response for loadFolders path: ${path}`, response);
-						if (element) element.next('ul').remove(); // Clean up previous if any
-						resolve(); // Resolve promise even if response is bad/empty
-						return;
+						if (element) element.next('ul').remove();
+						resolve(); return;
 					}
-					
 					var ul = $('<ul>').addClass('list-unstyled').hide();
 					response.folders.sort((a, b) => a.localeCompare(b));
 					response.files.sort((a, b) => a.localeCompare(b));
 					
 					response.folders.forEach(function (folder) {
 						const fullPath = path === '.' ? folder : path + '/' + folder;
-						const isTopLevel = !fullPath.includes('/'); // <-- Check if top-level
-						
-						// --- START: Favorites Filter Logic ---
+						const isTopLevel = !fullPath.includes('/');
 						if (!showFavoritesOnly || isPathOrParentFavorite(fullPath)) {
-							// --- END: Favorites Filter Logic ---
 							const li = $('<li>');
-							const controls = $('<span>').addClass('folder-controls'); // Span to group icons
-							// Folder Text/Link
+							const controls = $('<span>').addClass('folder-controls');
 							let span = $('<span>').addClass('folder').text(folder).attr('data-path', fullPath);
-							span.append(controls); // Append controls to the span
-							li.append(span); // Add folder span
-							
-							// --- MODIFIED: Conditionally Add Star Icon ---
-							if (isTopLevel) { // Only add star for top-level folders
-								controls.append(
-									$('<i>').addClass('fas fa-star folder-star' + (favorites.includes(fullPath) ? ' favorite' : ''))
-										.attr('title', 'Toggle favorite')
-								);
-								controls.append(
-									$('<i>').addClass('fas fa-search folder-search-icon')
-										.attr('title', 'Search in this folder')
-								);
+							span.append(controls);
+							li.append(span);
+							if (isTopLevel) {
+								controls.append($('<i>').addClass('fas fa-star folder-star' + (favorites.includes(fullPath) ? ' favorite' : '')).attr('title', 'Toggle favorite'));
+								controls.append($('<i>').addClass('fas fa-search folder-search-icon').attr('title', 'Search in this folder'));
 							}
-							// --- END MODIFIED ---
-							
-							// Clear Selection Icon (Keep for all folders)
-							controls.append(
-								$('<i>').addClass('fas fa-eraser folder-clear-icon') // Using fa-eraser
-									.attr('title', 'Clear selection in this folder')
-							);
-							
-							// li.append(controls); // Add controls span
+							controls.append($('<i>').addClass('fas fa-eraser folder-clear-icon').attr('title', 'Clear selection in this folder'));
 							ul.append(li);
-						} // --- Added closing brace for the if statement (already existed)
+						}
 					});
-					
 					
 					response.files.forEach(function (file) {
 						const fullPath = path === '.' ? file : path + '/' + file;
-						const li = $('<li>'); // Indent files
-						// Checkbox
-						li.append(
-							$('<div>').addClass('checkbox-wrapper').append(
-								$('<input>').addClass('full-file').attr({
-									type: 'checkbox',
-									'data-path': fullPath, // Use fullPath here
-									'id': `cb-${fullPath.replace(/[^a-zA-Z0-9]/g, '-')}` // Unique ID
-								})
-							)
-						);
-						// File Text/Link
-						li.append(
-							$('<span>').addClass('file').text(file)
-								// .attr({'data-path': fullPath})
-								.attr('title', fullPath) // Show full path on hover
-						);
+						const li = $('<li>');
+						li.append($('<div>').addClass('checkbox-wrapper').append(
+							$('<input>').addClass('full-file').attr({ type: 'checkbox', 'data-path': fullPath, 'id': `cb-${fullPath.replace(/[^a-zA-Z0-9]/g, '-')}` })
+						));
+						li.append($('<span>').addClass('file').text(file).attr('title', fullPath));
 						ul.append(li);
 					});
 					
-					// Detach existing ul before appending new one to prevent duplicates
 					if (element) {
-						element.next('ul').detach(); // Use detach to remove data/events too
+						element.next('ul').detach();
 					} else {
-						$('#file-tree').empty(); // Clear entire tree if loading root
+						$('#file-tree').empty();
 					}
 					
-					if (ul.children().length > 0) { // Only append if there's content
+					if (ul.children().length > 0) {
 						if (element) {
-							element.after(ul); // Add the new list
-							// --- restoreCheckedStates removed here, handled by the main restoreState flow ---
-							// restoreCheckedStates(false);
-							ul.slideDown(200, function () {
-								resolve(); // Resolve after animation
-							});
+							element.after(ul);
+							// Don't restore checks here, it's handled by restoreState
+							ul.slideDown(200, () => resolve());
 						} else {
-							$('#file-tree').html(ul); // Set content for root
+							$('#file-tree').html(ul);
 							ul.show();
-							// --- restoreCheckedStates removed here, handled by the main restoreState flow ---
-							// restoreCheckedStates(false);
-							resolve(); // Resolve immediately for root
+							// Don't restore checks here
+							resolve();
 						}
 					} else {
-						// If the list is empty after filtering/loading, just resolve.
+						if (element && element.hasClass('open')) {
+							// If a folder was opened but resulted in an empty list (e.g., due to fav filter),
+							// remove the 'open' class visually.
+							element.removeClass('open');
+							console.log(`Folder ${path} loaded empty, closing visually.`);
+						}
 						resolve(); // Resolve even if list is empty
 					}
 				},
 				error: function (xhr, status, error) {
 					console.error(`Error loading folders for path ${path}:`, error);
-					reject(error); // Reject the promise on error
+					if (element) element.removeClass('open'); // Remove open class on error
+					reject(error);
 				}
 			});
 		});
 	}
 	
-	
-	// --- NEW: Function to ensure parent folders are open ---
-	// This is kept for the search functionality, but the main restore uses openFolderRecursively now
+	// --- Visibility for Search (keep existing) ---
 	async function ensureFileIsVisible(filePath) {
 		const parts = filePath.split('/');
 		let currentPath = '';
-		
-		// Iterate through directory parts only (exclude the filename)
 		for (let i = 0; i < parts.length - 1; i++) {
 			currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i];
-			// Use attribute selector for potentially complex paths
 			const folderElement = $(`#file-tree .folder[data-path="${currentPath}"]`);
-			
 			if (folderElement.length) {
 				if (!folderElement.hasClass('open')) {
 					console.log(`Ensuring visibility: Opening ${currentPath}`);
-					folderElement.addClass('open'); // Optimistically add class
+					folderElement.addClass('open');
 					try {
-						// Wait for the folder content to load
+						// Need to pass potential overrides if ensureFileIsVisible is ever called during workspace load?
+						// For now, assume it's called independently.
 						await loadFolders(currentPath, folderElement);
 						console.log(`Successfully opened: ${currentPath} for visibility`);
 					} catch (error) {
 						console.error(`Failed to open folder ${currentPath} while ensuring visibility`, error);
-						return false; // Indicate failure to reveal
+						return false;
 					}
 				}
 			} else {
 				console.warn(`Folder element not found for path: ${currentPath} while ensuring visibility. File ${filePath} might not be checkable.`);
-				return false; // Indicate failure to reveal
+				return false;
 			}
 		}
-		return true; // Indicate success or that no opening was needed
+		return true;
 	}
-	
 	
 	// --- Document Ready ---
 	$(document).ready(function () {
-		searchModal = new bootstrap.Modal(document.getElementById('searchModal')); // Initialize modal instance
+		searchModal = new bootstrap.Modal(document.getElementById('searchModal'));
 		
-		// --- START: Apply Initial Favorites Mode ---
-		// Set the initial button text based on the loaded preference
+		// Load workspaces first
+		loadWorkspacesFromStorage();
+		updateWorkspaceDropdown(); // Populate dropdown initially
+		
+		// Apply Initial Favorites Mode
 		$('#toggle-favorites').text(showFavoritesOnly ? 'Show All' : 'Show Favorites Only');
-		// --- END: Apply Initial Favorites Mode ---
 		
+		// Load initial root directories and default state
+		loadRootDirectories(); // This calls loadFoldersAndRestoreState internally
 		
-		// Load initial state (this will trigger the enhanced restoreState)
-		loadRootDirectories();
+		// --- Workspace Event Listeners ---
+		$('#save-workspace-as').click(function(e) {
+			e.preventDefault();
+			const name = prompt("Enter a name for this workspace:");
+			if (name) {
+				if (workspaces[name]) {
+					if (!confirm(`Workspace "${name}" already exists. Overwrite?`)) {
+						return; // User cancelled overwrite
+					}
+				}
+				saveCurrentWorkspace(name);
+			}
+		});
 		
-		// Root directory change
+		$('#update-workspace').click(function(e) {
+			e.preventDefault();
+			if ($(this).hasClass('disabled') || !currentWorkspaceName) return;
+			saveCurrentWorkspace(currentWorkspaceName); // Save over the current name
+		});
+		
+		$('#delete-workspace').click(function(e) {
+			e.preventDefault();
+			if ($(this).hasClass('disabled') || !currentWorkspaceName) return;
+			deleteWorkspace(currentWorkspaceName);
+		});
+		
+		// Use event delegation for loading workspaces
+		$('#workspace-dropdown').on('click', '.load-workspace', function(e) {
+			e.preventDefault();
+			const nameToLoad = $(this).data('workspaceName');
+			loadWorkspace(nameToLoad);
+		});
+		
+		// --- Other Event Listeners ---
+		
+		// Root directory change - Load default state for that root
 		$('#root-directory').change(function () {
+			markWorkspaceAsDirty(); // Changing root invalidates workspace
 			const newRootIndex = parseInt($(this).val());
-			loadFoldersAndRestoreState(newRootIndex); // Use the combined function
+			// Load default state, no overrides
+			loadFoldersAndRestoreState(newRootIndex);
 		});
 		
 		// Unselect All
 		$('#unselect-all').click(function () {
+			markWorkspaceAsDirty();
 			$('#file-tree input[type="checkbox"]').prop('checked', false);
-			updateSelectedContent(); // Update content to be empty
-			saveState(); // Save the unselected state
+			updateSelectedContent();
+			saveDefaultViewState(); // Save the unselected state as default
 		});
 		
 		// Toggle Favorites
 		$('#toggle-favorites').click(function () {
+			markWorkspaceAsDirty();
 			showFavoritesOnly = !showFavoritesOnly;
 			$(this).text(showFavoritesOnly ? 'Show All' : 'Show Favorites Only');
-			// --- START: Save Favorites Mode on Toggle ---
-			localStorage.setItem('showFavoritesMode', showFavoritesOnly); // Save preference immediately
-			// --- END: Save Favorites Mode on Toggle ---
-			loadFoldersAndRestoreState(currentRootIndex); // Reload and restore for current root
+			localStorage.setItem('showFavoritesMode', showFavoritesOnly);
+			// Reload using default state restoration logic for the current root
+			loadFoldersAndRestoreState(currentRootIndex);
 		});
-		
 		
 		// Toggle Dark/Light Mode
 		$('#toggle-mode').click(function () {
@@ -584,10 +736,10 @@
 			const isDarkMode = $('body').hasClass('dark-mode');
 			$(this).find('i').toggleClass('fa-sun fa-moon');
 			localStorage.setItem('darkMode', isDarkMode);
-			// No need to call saveState() here unless dark mode affects saved state
+			// No need to mark workspace dirty for theme change
 		});
 		
-		// Apply initial dark mode if needed
+		// Apply initial dark mode
 		if (localStorage.getItem('darkMode') === 'true') {
 			$('body').addClass('dark-mode');
 			$('#toggle-mode').find('i').removeClass('fa-sun').addClass('fa-moon');
@@ -595,15 +747,12 @@
 		
 		// Toggle Favorite Star
 		$(document).on('click', '.folder-star', function (e) {
-			e.stopPropagation(); // Prevent folder click
+			e.stopPropagation();
+			markWorkspaceAsDirty(); // Changing favorites might affect workspace view if fav only mode active
 			const folderElement = $(this).closest('li').find('.folder');
 			if (!folderElement.length) return;
 			const path = folderElement.data('path');
-			
-			if (!path || path.includes('/')) {
-				console.warn("Attempted to favorite a non-top-level folder or invalid path:", path);
-				return; // Do nothing if it's not a top-level folder
-			}
+			if (!path || path.includes('/')) return;
 			
 			const index = favorites.indexOf(path);
 			if (index === -1) {
@@ -612,19 +761,14 @@
 			} else {
 				favorites.splice(index, 1);
 				$(this).removeClass('favorite');
-				// If in favorites only mode and we remove the favorite, reload needed
 				if (showFavoritesOnly) {
-					// Find the li and remove it gently or reload parent/tree
-					// Simple approach: Reload the whole tree in favorites mode
-					loadFoldersAndRestoreState(currentRootIndex);
-					// More complex (optional): Just remove the element or reload parent
-					// $(this).closest('li').slideUp(200, function() { $(this).remove(); });
+					// Reload needed only if in favorites mode and removing
+					loadFoldersAndRestoreState(currentRootIndex); // Reload default state
 				}
 			}
-			localStorage.setItem('favorites', JSON.stringify(favorites)); // Save favorites change instantly
-			// saveState(); // Optionally call saveState if you want to trigger other save actions simultaneously
+			localStorage.setItem('favorites', JSON.stringify(favorites)); // Save global favorites
+			saveDefaultViewState(); // Also update default view state
 		});
-		
 		
 		// Click Folder to Open/Close
 		$(document).on('click', '.folder', function (e) {
@@ -633,161 +777,121 @@
 			var $this = $(this);
 			
 			if ($this.hasClass('open')) {
+				markWorkspaceAsDirty();
 				$this.removeClass('open');
-				// Hide the UL instead of removing for faster re-open
-				$this.next('ul').slideUp(200, () => saveState()); // Save state after closing
+				$this.next('ul').slideUp(200, () => saveDefaultViewState()); // Save default state
 			} else {
 				const ul = $this.next('ul');
 				if (ul.length && ul.children().length > 0) {
-					// Already loaded and has content, just open
-					$this.addClass('open'); // Add class before animation
-					ul.slideDown(200, () => saveState()); // Save state after opening
-				} else {
-					// Not loaded yet or was empty
-					showLoading('Loading folder...');
-					// Add 'open' class optimistically before loading
+					markWorkspaceAsDirty();
 					$this.addClass('open');
+					ul.slideDown(200, () => saveDefaultViewState()); // Save default state
+				} else {
+					showLoading('Loading folder...');
+					$this.addClass('open'); // Optimistic
+					// Load without overrides
 					loadFolders(path, $this).then(() => {
-						// loadFolders now handles removing the 'open' class if it loaded empty
-						// Check if it's still open after loading
-						if (!$this.hasClass('open')) {
-							console.log(`Folder ${path} loaded empty or failed, removing open class.`);
-						}
-						saveState(); // Save state after loading/opening attempt
+						markWorkspaceAsDirty(); // Mark dirty after successful load/open
+						saveDefaultViewState(); // Save default state
 						hideLoading();
 					}).catch(err => {
 						console.error("Error loading folder on click:", err);
-						$this.removeClass('open'); // Ensure not marked open on error
+						$this.removeClass('open'); // Revert optimistic add
 						hideLoading();
-						saveState(); // Save state even on error (to save the closed state)
+						// Don't save state on error? Or save the closed state? Let's save closed.
+						saveDefaultViewState();
 					});
 				}
 			}
 		});
 		
-		
 		// Checkbox Change
 		$(document).on('change', 'input[type="checkbox"]', function (e) {
 			e.stopPropagation();
+			markWorkspaceAsDirty();
 			console.log('Checkbox change detected for:', $(this).data('path'), 'Checked:', $(this).prop('checked'));
 			updateSelectedContent(); // Update the content area
-			saveState(); // Save the new selection state
+			saveDefaultViewState(); // Save the new selection state as default
 		});
 		
-		// --- NEW: Search Icon Click ---
+		// Search Icon Click (no change needed)
 		$(document).on('click', '.folder-search-icon', function (e) {
-			e.stopPropagation(); // Prevent folder click
+			e.stopPropagation();
 			currentSearchFolderPath = $(this).closest('li').find('.folder').data('path');
-			$('#searchModalFolderPath').text(currentSearchFolderPath || 'Root'); // Show path or 'Root' if '.'
-			$('#searchTermInput').val(''); // Clear previous search term
-			$('#searchTermInput').trigger('focus'); // Focus input
-			searchModal.show(); // Show the Bootstrap modal
+			$('#searchModalFolderPath').text(currentSearchFolderPath || 'Root');
+			$('#searchTermInput').val('');
+			$('#searchTermInput').trigger('focus');
+			searchModal.show();
 		});
 		
-		// --- NEW: Clear Folder Selection Icon Click ---
+		// Clear Folder Selection Icon Click
 		$(document).on('click', '.folder-clear-icon', function(e) {
-			e.stopPropagation(); // Prevent folder click
+			e.stopPropagation();
 			const folderElement = $(this).closest('li').find('.folder');
 			if (!folderElement.length) return;
 			const folderPath = folderElement.data('path');
 			if (!folderPath) return;
 			
 			console.log(`Clearing selection in folder: ${folderPath}`);
+			const selector = folderPath === '.'
+				? '#file-tree > ul > li input[type="checkbox"]' // Top level only
+				: `#file-tree input[type="checkbox"][data-path^="${folderPath}/"]`; // Descendants
 			
-			// Find all checkboxes representing files *within* this folder and its subfolders
-			// We need to match paths that start with folderPath + '/'
-			// Use attribute selector carefully for paths containing special characters
-			// Escape special characters in folderPath for the selector if needed, but ^ starts-with should be okay usually.
-			const selector = `#file-tree input[type="checkbox"][data-path^="${folderPath}/"]`;
-			const checkboxesToUncheck = $(selector);
 			let uncheckCount = 0;
-			
-			checkboxesToUncheck.each(function() {
+			$(selector).each(function() {
+				// Special handling for root: only uncheck if path has no '/'
+				if (folderPath === '.' && $(this).data('path').includes('/')) {
+					return; // Skip subfolder items when clearing root
+				}
 				if ($(this).prop('checked')) {
 					$(this).prop('checked', false);
 					uncheckCount++;
 				}
 			});
 			
-			// Also check for files directly *in* the root folder if folderPath is '.' - This case needs careful handling
-			// If folderPath is '.', the selector above won't work. We need items *not* containing '/'
-			if (folderPath === '.') {
-				const rootCheckboxes = $('#file-tree > ul > li input[type="checkbox"]'); // Select top-level checkboxes
-				rootCheckboxes.each(function() {
-					// Check if the path does NOT contain a slash
-					if (!$(this).data('path').includes('/')) {
-						if ($(this).prop('checked')) {
-							$(this).prop('checked', false);
-							uncheckCount++;
-						}
-					}
-				});
-			}
-			
-			
 			if (uncheckCount > 0) {
-				console.log(`Unchecked ${uncheckCount} file(s) in ${folderPath} and its subdirectories`);
-				updateSelectedContent(); // Update the text area
-				saveState(); // Save the new state
+				markWorkspaceAsDirty();
+				console.log(`Unchecked ${uncheckCount} file(s) in ${folderPath}`);
+				updateSelectedContent();
+				saveDefaultViewState(); // Save default state
 			} else {
 				console.log(`No checked files found to clear in ${folderPath}`);
 			}
 		});
-		// --- END NEW ---
 		
 		
-		// Allow submitting search with Enter key in modal
+		// Allow submitting search with Enter key in modal (no change needed)
 		$('#searchTermInput').on('keypress', function (e) {
-			if (e.which === 13) { // Enter key pressed
+			if (e.which === 13) {
 				$('#performSearchButton').trigger('click');
 			}
 		});
 		
-		// --- Perform Search Button Click ---
+		// Perform Search Button Click
 		$('#performSearchButton').click(async function () {
 			const searchTerm = $('#searchTermInput').val().trim();
-			const searchPath = currentSearchFolderPath; // Path stored when icon was clicked
-			searchModal.hide(); // Hide the modal
-			
-			if (!searchTerm) {
-				// Optionally show modal again or just do nothing
-				// alert("Please enter a search term.");
-				return;
-			}
-			if (searchPath === null) {
-				console.error("Search path is not set.");
-				alert("Error: Search path not defined.");
-				return;
-			}
+			const searchPath = currentSearchFolderPath;
+			searchModal.hide();
+			if (!searchTerm || searchPath === null) return;
 			
 			console.log(`Searching for "${searchTerm}" in "${searchPath}" (Root Index: ${currentRootIndex})`);
 			showLoading('Searching files...');
-			
 			try {
 				const response = await $.ajax({
-					url: '/',
-					method: 'POST',
-					data: {
-						action: 'search_files',
-						folderPath: searchPath,
-						searchTerm: searchTerm,
-						rootIndex: currentRootIndex
-					},
+					url: '/', method: 'POST',
+					data: { action: 'search_files', folderPath: searchPath, searchTerm: searchTerm, rootIndex: currentRootIndex },
 					dataType: 'json'
 				});
 				
 				console.log("Search results:", response.matchingFiles);
-				
 				if (response.matchingFiles && response.matchingFiles.length > 0) {
 					let successfulChecks = 0;
-					// Process files sequentially to ensure parent folders are opened correctly
 					for (const filePath of response.matchingFiles) {
 						try {
 							const isVisible = await ensureFileIsVisible(filePath);
 							if (isVisible) {
-								// Use attribute selector for safety with special chars
 								const checkbox = $(`#file-tree input[type="checkbox"][data-path="${filePath}"]`);
-								if (checkbox.length && !checkbox.prop('checked')) { // Check if not already checked
+								if (checkbox.length && !checkbox.prop('checked')) {
 									checkbox.prop('checked', true);
 									successfulChecks++;
 									console.log(`Checked file via search: ${filePath}`);
@@ -803,14 +907,14 @@
 					} // End for loop
 					
 					if (successfulChecks > 0) {
+						markWorkspaceAsDirty(); // Mark dirty as search changed selection
 						console.log(`Search completed, ${successfulChecks} new files checked. Updating content...`);
-						updateSelectedContent(); // Update content AFTER all checks are done
-						saveState(); // Save the newly checked state AFTER update
+						updateSelectedContent();
+						saveDefaultViewState(); // Save new default state
 						alert(`Selected ${successfulChecks} new file(s) containing "${searchTerm}".`);
 					} else {
-						alert(`Found files containing "${searchTerm}", but no *new* files were selected (they might have been already selected or could not be displayed).`);
+						alert(`Found files containing "${searchTerm}", but no *new* files were selected.`);
 					}
-					
 				} else {
 					alert(`No files found containing "${searchTerm}" in "${searchPath}".`);
 				}
@@ -822,7 +926,7 @@
 			}
 		});
 		
-		// Optional: Clear search path when modal is hidden
+		// Optional: Clear search path when modal is hidden (no change needed)
 		$('#searchModal').on('hidden.bs.modal', function () {
 			currentSearchFolderPath = null;
 		});
