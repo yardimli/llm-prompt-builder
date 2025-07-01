@@ -523,7 +523,8 @@
 		
 		try {
 			const results = await Promise.all(requestPromises);
-			$('#selected-content').val(results.join(''));
+			const contentFooter = "\n For PHP use psr-12 standards, for javascript use StandardJS, for html use W3C standards.\nOutput as Git Diff.\nComment as needed.\nAdd comments to new lines and modifed sections.\n";
+			$('#selected-content').val(results.join('')+contentFooter);
 			console.log('Finished updating selected content.');
 			// Don't save default state here automatically
 		} catch (error) {
