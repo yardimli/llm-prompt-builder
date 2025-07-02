@@ -34,7 +34,10 @@ function getProjectIdentifier(project) {
 function parseProjectIdentifier(identifier) {
 	if (!identifier) return null;
 	const parts = identifier.split('_');
-	return {rootIndex: parseInt(parts[0], 10), path: parts.slice(1).join('_')};
+	return {
+		rootIndex: parseInt(parts[0], 10),
+		path: parts.slice(1).join('_')
+	};
 }
 
 // A reusable async function to handle POST requests using fetch.
@@ -43,16 +46,18 @@ async function postData(data) {
 	for (const key in data) {
 		formData.append(key, data[key]);
 	}
-	
 	const response = await fetch('/', {
 		method: 'POST',
-		headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+		headers: {
+			'Content-Type': 'application/x-www-form-urlencoded'
+		},
 		body: formData
 	});
-	
 	if (!response.ok) {
 		// Try to parse a JSON error message from the server, otherwise use status text.
-		let errorPayload = {error: `Request failed: ${response.statusText}`};
+		let errorPayload = {
+			error: `Request failed: ${response.statusText}`
+		};
 		try {
 			errorPayload = await response.json();
 		} catch (e) {
@@ -63,16 +68,13 @@ async function postData(data) {
 	return response.json();
 }
 
-
 // --- Project & State Management ---
 
 // Saves the current project state (open folders, selected files) to the server.
 function saveCurrentProjectState() {
 	if (!currentProject) return;
-	
 	const openFolders = Array.from(document.querySelectorAll('#file-tree .folder.open')).map(el => el.dataset.path);
 	const selectedFiles = Array.from(document.querySelectorAll('#file-tree input[type="checkbox"]:checked')).map(el => el.dataset.path);
-	
 	postData({
 		action: 'save_project_state',
 		rootIndex: currentProject.rootIndex,
@@ -89,16 +91,13 @@ function saveCurrentProjectState() {
 async function loadProject(identifier) {
 	const project = parseProjectIdentifier(identifier);
 	const fileTree = document.getElementById('file-tree');
-	
 	if (!project) {
 		fileTree.innerHTML = '<p class="p-3 text-muted">Please select a project.</p>';
 		return;
 	}
-	
 	showLoading(`Loading project "${project.path}"...`);
 	currentProject = project;
 	document.getElementById('projects-dropdown').value = identifier;
-	
 	try {
 		// Fetch the project's saved state from the server.
 		const savedState = await postData({
@@ -106,10 +105,12 @@ async function loadProject(identifier) {
 			rootIndex: currentProject.rootIndex,
 			projectPath: currentProject.path
 		});
-		
 		// Load the root folder and then restore the full state.
 		await loadFolders(currentProject.path, null);
-		await restoreState(savedState || {openFolders: [], selectedFiles: []});
+		await restoreState(savedState || {
+			openFolders: [],
+			selectedFiles: []
+		});
 	} catch (error) {
 		console.error(`Error loading project ${project.path}:`, error);
 		alert(`Error loading project. Check console for details.`);
@@ -118,12 +119,11 @@ async function loadProject(identifier) {
 	}
 }
 
-
 // --- Core File Tree Logic ---
 
 // Restores the UI state (open folders, checked files) from data fetched from the server.
 async function restoreState(state) {
-	console.log("Restoring state:", state);
+	console.log('Restoring state:', state);
 	const pathsToEnsureOpen = new Set(state.openFolders || []);
 	(state.selectedFiles || []).forEach(filePath => {
 		let parentPath = getParentPath(filePath);
@@ -132,9 +132,7 @@ async function restoreState(state) {
 			parentPath = getParentPath(parentPath);
 		}
 	});
-	
 	const sortedPaths = [...pathsToEnsureOpen].sort((a, b) => a.split('/').length - b.split('/').length);
-	
 	for (const path of sortedPaths) {
 		const folderElement = document.querySelector(`#file-tree .folder[data-path="${path}"]`);
 		if (folderElement && !folderElement.classList.contains('open')) {
@@ -142,13 +140,12 @@ async function restoreState(state) {
 			await loadFolders(path, folderElement);
 		}
 	}
-	
 	restoreCheckedStates(state.selectedFiles || []);
 	updateSelectedContent();
 }
 
 function restoreCheckedStates(selectedFiles) {
-	document.querySelectorAll('#file-tree input[type="checkbox"]').forEach(cb => cb.checked = false);
+	document.querySelectorAll('#file-tree input[type="checkbox"]').forEach(cb => (cb.checked = false));
 	selectedFiles.forEach(path => {
 		const checkbox = document.querySelector(`#file-tree input[type="checkbox"][data-path="${path}"]`);
 		if (checkbox) {
@@ -162,15 +159,13 @@ function restoreCheckedStates(selectedFiles) {
 // Fetches and displays the contents of a folder.
 function loadFolders(path, element) {
 	return new Promise(async (resolve, reject) => {
-		if (!currentProject) return reject("No project selected");
-		
+		if (!currentProject) return reject(new Error('No project selected'));
 		try {
 			const response = await postData({
 				action: 'get_folders',
 				path: path,
 				rootIndex: currentProject.rootIndex
 			});
-			
 			const fileTree = document.getElementById('file-tree');
 			if (element) {
 				// Remove existing sub-list if it exists.
@@ -181,48 +176,41 @@ function loadFolders(path, element) {
 			} else {
 				fileTree.innerHTML = ''; // Clear the entire tree for root loading.
 			}
-			
 			if (!response || (!response.folders.length && !response.files.length)) {
 				if (element) element.classList.remove('open');
 				return resolve();
 			}
-			
 			const ul = document.createElement('ul');
 			ul.className = 'list-unstyled';
 			// Hide by default to avoid flash of unstyled content, will be shown after insertion.
 			ul.style.display = 'none';
-			
 			let content = '';
 			response.folders.sort((a, b) => a.localeCompare(b));
 			response.files.sort((a, b) => a.localeCompare(b));
-			
 			response.folders.forEach(folder => {
 				const fullPath = `${path}/${folder}`;
 				content += `
-                    <li>
-                        <span class="folder" data-path="${fullPath}">
-                            ${folder}
-                            <span class="folder-controls">
-                                <i class="fas fa-search folder-search-icon" title="Search in this folder"></i>
-                                <i class="fas fa-eraser folder-clear-icon" title="Clear selection in this folder"></i>
-                            </span>
-                        </span>
-                    </li>`;
+          <li>
+            <span class="folder" data-path="${fullPath}">
+              ${folder}
+              <span class="folder-controls">
+                <i class="fas fa-search folder-search-icon" title="Search in this folder"></i>
+                <i class="fas fa-eraser folder-clear-icon" title="Clear selection in this folder"></i>
+              </span>
+            </span>
+          </li>`;
 			});
-			
 			response.files.forEach(file => {
 				const fullPath = `${path}/${file}`;
 				content += `
-                    <li>
-                        <div class="checkbox-wrapper">
-                            <input type="checkbox" data-path="${fullPath}">
-                        </div>
-                        <span class="file" title="${fullPath}">${file}</span>
-                    </li>`;
+          <li>
+            <div class="checkbox-wrapper">
+              <input type="checkbox" data-path="${fullPath}">
+            </div>
+            <span class="file" title="${fullPath}">${file}</span>
+          </li>`;
 			});
-			
 			ul.innerHTML = content;
-			
 			if (element) {
 				element.after(ul); // Insert the new list after the folder span.
 			} else {
@@ -230,7 +218,6 @@ function loadFolders(path, element) {
 			}
 			ul.style.display = 'block'; // Show the new list.
 			resolve();
-			
 		} catch (error) {
 			console.error(`Error loading folders for path ${path}:`, error);
 			if (element) element.classList.remove('open');
@@ -243,14 +230,11 @@ function loadFolders(path, element) {
 async function updateSelectedContent() {
 	const checkedBoxes = document.querySelectorAll('#file-tree input[type="checkbox"]:checked');
 	const selectedContentEl = document.getElementById('selected-content');
-	
 	if (checkedBoxes.length === 0) {
 		selectedContentEl.value = '';
 		return;
 	}
-	
 	showLoading(`Loading ${checkedBoxes.length} file(s)...`);
-	
 	const requestPromises = Array.from(checkedBoxes).map(box => {
 		const path = box.dataset.path;
 		return postData({
@@ -261,21 +245,20 @@ async function updateSelectedContent() {
 			.then(response => `${path}:\n\n${response.content}\n\n`)
 			.catch(error => `/* --- ERROR loading ${path}: ${error.message || 'Unknown error'} --- */\n\n`);
 	});
-	
 	try {
 		const results = await Promise.all(requestPromises);
-		const contentFooter = "All input is minified. \n" +
-			"For output format the output. \n" +
-			"For PHP use psr-12 standards.\n" +
-			"For javascript use StandardJS but include semicolumns.\n" +
-			"For html use W3C standards.\n" +
-			"Skip files that dont need to be changed and are provided for reference.\n" +
-			"Comment as needed.\n" +
-			"Add comments to new lines and modifed sections.\n";
+		const contentFooter = 'All input is minified. \n' +
+			'For output format the output. \n' +
+			'For PHP use psr-12 standards.\n' +
+			'For javascript use StandardJS but include semicolumns.\n' +
+			'For html use W3C standards.\n' +
+			'Skip files that dont need to be changed and are provided for reference.\n' +
+			'Comment as needed.\n' +
+			'Add comments to new lines and modifed sections.\n';
 		selectedContentEl.value = results.join('') + contentFooter;
 	} catch (error) {
-		console.error("Error updating content:", error);
-		selectedContentEl.value = "/* --- An unexpected error occurred while loading file contents. --- */";
+		console.error('Error updating content:', error);
+		selectedContentEl.value = '/* --- An unexpected error occurred while loading file contents. --- */';
 	} finally {
 		hideLoading();
 	}
@@ -301,7 +284,6 @@ async function ensureFileIsVisible(filePath) {
 	return true;
 }
 
-
 // --- Document Ready ---
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -310,12 +292,22 @@ document.addEventListener('DOMContentLoaded', function () {
 	// Single initialization function to load all data from the server.
 	async function initializeApp() {
 		try {
-			const data = await postData({action: 'get_main_page_data'});
+			const data = await postData({
+				action: 'get_main_page_data'
+			});
 			
 			// 1. Apply Dark Mode from server settings.
 			if (data.darkMode) {
 				document.body.classList.add('dark-mode');
 				document.querySelector('#toggle-mode i').classList.replace('fa-sun', 'fa-moon');
+			}
+			
+			// ADDED: Initialize the LLM selector with data from the server.
+			// This function is defined in llm.js and populates the dropdown.
+			if (window.llmHelper && typeof window.llmHelper.initializeLlmSelector === 'function') {
+				window.llmHelper.initializeLlmSelector(data.llms, data.lastSelectedLlm);
+			} else {
+				console.error('LLM helper function not found. Ensure llm.js is loaded before index.js.');
 			}
 			
 			// 2. Populate Projects Dropdown.
@@ -326,7 +318,6 @@ document.addEventListener('DOMContentLoaded', function () {
 				document.getElementById('file-tree').innerHTML = '<p class="p-3 text-muted">No projects configured. Please go to "Select Projects" to begin.</p>';
 				return;
 			}
-			
 			data.projects.forEach(project => {
 				const identifier = getProjectIdentifier(project);
 				const option = document.createElement('option');
@@ -344,13 +335,12 @@ document.addEventListener('DOMContentLoaded', function () {
 				await loadProject(firstProjectIdentifier);
 			}
 		} catch (error) {
-			console.error("Failed to initialize app:", error);
-			alert("Could not load application data from the server. Please ensure the server is running and check the console.");
+			console.error('Failed to initialize app:', error);
+			alert('Could not load application data from the server. Please ensure the server is running and check the console.');
 		}
 	}
 	
 	initializeApp();
-	
 	
 	// --- Event Listeners ---
 	
@@ -359,7 +349,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	});
 	
 	document.getElementById('unselect-all').addEventListener('click', function () {
-		document.querySelectorAll('#file-tree input[type="checkbox"]').forEach(cb => cb.checked = false);
+		document.querySelectorAll('#file-tree input[type="checkbox"]').forEach(cb => (cb.checked = false));
 		updateSelectedContent();
 		saveCurrentProjectState();
 	});
@@ -369,7 +359,10 @@ document.addEventListener('DOMContentLoaded', function () {
 		const isDarkMode = document.body.classList.contains('dark-mode');
 		this.querySelector('i').classList.toggle('fa-sun');
 		this.querySelector('i').classList.toggle('fa-moon');
-		postData({action: 'set_dark_mode', isDarkMode: isDarkMode});
+		postData({
+			action: 'set_dark_mode',
+			isDarkMode: isDarkMode
+		});
 	});
 	
 	// Use event delegation for clicks within the dynamic file tree.
@@ -390,7 +383,6 @@ document.addEventListener('DOMContentLoaded', function () {
 			e.stopPropagation();
 			const folderPath = clearIcon.closest('.folder').dataset.path;
 			if (!folderPath) return;
-			
 			const selector = `input[type="checkbox"][data-path^="${folderPath}/"]`;
 			let uncheckCount = 0;
 			document.querySelectorAll(selector).forEach(cb => {
@@ -399,7 +391,6 @@ document.addEventListener('DOMContentLoaded', function () {
 					uncheckCount++;
 				}
 			});
-			
 			if (uncheckCount > 0) {
 				updateSelectedContent();
 				saveCurrentProjectState();
