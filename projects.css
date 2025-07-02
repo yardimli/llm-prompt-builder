@@ -57,6 +57,6 @@ body.dark-mode .form-check-input:checked {
 }
 
 body.dark-mode .text-body {
-    color: #ccc;
+    color: #ccc !important;
 }
 

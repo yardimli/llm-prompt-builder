@@ -124,11 +124,11 @@ body.dark-mode .btn-outline-primary:hover {
 }
 
 body.dark-mode .fs-4 {
-    color: #fff;
+    color: #fff !important;
 }
 
 body.dark-mode .text-body {
-    color: #ccc;
+    color: #ccc !important;
 }
 
 #file-tree ul {
