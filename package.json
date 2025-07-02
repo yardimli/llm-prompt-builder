@@ -7,5 +7,8 @@
     "start": "node server.js"
   },
   "author": "locutus of borg",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^12.2.0"
+  }
 }

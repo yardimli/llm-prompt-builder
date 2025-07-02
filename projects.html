@@ -8,18 +8,11 @@
 	      crossorigin="anonymous">
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script src="projects.js"></script>
 	<link rel="stylesheet" href="projects.css">
 </head>
 <body class="">
-<!-- Immediate script to prevent FOUC (Flash of Unstyled Content) -->
-<script>
-	(function () {
-		if (localStorage.getItem('darkMode') === 'true') {
-			document.body.classList.add('dark-mode');
-		}
-	})();
-</script>
-
+<!-- REMOVED: Immediate script that used localStorage. Dark mode is now applied via JS after fetching the setting. -->
 <div class="container mt-4">
 	<header class="d-flex justify-content-between align-items-center py-3 mb-4 border-bottom">
 		<h1 class="fs-4">Select Your Projects</h1>
@@ -33,11 +26,11 @@
 	
 	<main>
 		<p class="text-muted">
-			Select the root folders you want to treat as projects. They will appear in the "Projects" dropdown on the main
-			page.
-			Your selections are saved automatically.
+			Select the root folders you want to treat as projects. They will appear in the "Projects" dropdown on the
+			main page. Your selections are saved automatically to the server.
 		</p>
 		<div id="projects-list">
+			<!-- NEW: A spinner is shown while the project list is being fetched from the server. -->
 			<div class="text-center p-5">
 				<div class="spinner-border" role="status">
 					<span class="visually-hidden">Loading...</span>
@@ -46,120 +39,5 @@
 		</div>
 	</main>
 </div>
-
-<script>
-	$(document).ready(function () {
-		const PROJECTS_KEY = 'llmHelperProjects';
-		let savedProjects = [];
-		
-		// --- Dark Mode ---
-		function applyDarkMode() {
-			const isDarkMode = $('body').hasClass('dark-mode');
-			$('#toggle-mode').find('i').toggleClass('fa-sun', !isDarkMode).toggleClass('fa-moon', isDarkMode);
-		}
-		
-		$('#toggle-mode').click(function () {
-			$('body').toggleClass('dark-mode');
-			const isDarkMode = $('body').hasClass('dark-mode');
-			localStorage.setItem('darkMode', isDarkMode);
-			applyDarkMode();
-		});
-		
-		// --- Project Logic ---
-		function getProjectIdentifier(project) {
-			return `${project.rootIndex}_${project.path}`;
-		}
-		
-		function isProjectSaved(project) {
-			const identifier = getProjectIdentifier(project);
-			return savedProjects.some(p => getProjectIdentifier(p) === identifier);
-		}
-		
-		function loadSavedProjects() {
-			const stored = localStorage.getItem(PROJECTS_KEY);
-			savedProjects = stored ? JSON.parse(stored) : [];
-		}
-		
-		function saveProjects() {
-			localStorage.setItem(PROJECTS_KEY, JSON.stringify(savedProjects));
-			console.log('Projects saved:', savedProjects);
-		}
-		
-		function renderProjectList() {
-			$.ajax({
-				url: '/',
-				method: 'POST',
-				data: {action: 'get_all_top_level_folders'},
-				dataType: 'json',
-				success: function (response) {
-					const projectsListContainer = $('#projects-list');
-					projectsListContainer.empty();
-					
-					if (!response.projects || response.projects.length === 0) {
-						projectsListContainer.html('<p class="text-center text-danger">No top-level folders found in your configured root directories.</p>');
-						return;
-					}
-					
-					const groupedProjects = response.projects.reduce((acc, project) => {
-						if (!acc[project.rootPath]) {
-							acc[project.rootPath] = [];
-						}
-						acc[project.rootPath].push(project);
-						return acc;
-					}, {});
-					
-					for (const rootPath in groupedProjects) {
-						projectsListContainer.append(`<h5 class="mt-4 text-muted w-100">${rootPath}</h5>`);
-						const row = $('<div class="row"></div>');
-						
-						groupedProjects[rootPath].forEach(function (project) {
-							const isChecked = isProjectSaved(project);
-							const identifier = getProjectIdentifier(project);
-							
-							const col = $('<div class="col-12 col-md-6 col-lg-3 mb-3"></div>');
-							
-							const item = $(`
-                                <div class="project-card form-check p-3 border rounded h-100">
-                                    <input class="form-check-input" type="checkbox" value="${identifier}" id="proj-${identifier}" ${isChecked ? 'checked' : ''}>
-                                    <label class="form-check-label" for="proj-${identifier}">
-                                        ${project.path}
-                                    </label>
-                                </div>
-                            `);
-							
-							item.find('input').data('project', project);
-							col.append(item);
-							row.append(col);
-						});
-						projectsListContainer.append(row);
-					}
-				},
-				error: function (xhr, status, error) {
-					$('#projects-list').html('<p class="text-center text-danger">Error loading project list. Check server logs.</p>');
-					console.error("Error fetching projects:", error);
-				}
-			});
-		}
-		
-		$(document).on('change', '#projects-list input[type="checkbox"]', function () {
-			const projectData = $(this).data('project');
-			const identifier = getProjectIdentifier(projectData);
-			
-			if (this.checked) {
-				if (!isProjectSaved(projectData)) {
-					savedProjects.push(projectData);
-				}
-			} else {
-				savedProjects = savedProjects.filter(p => getProjectIdentifier(p) !== identifier);
-			}
-			saveProjects();
-		});
-		
-		// Initial Load
-		applyDarkMode(); // Set the icon correctly on page load
-		loadSavedProjects();
-		renderProjectList();
-	});
-</script>
 </body>
 </html>
