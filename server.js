@@ -2,9 +2,8 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
-// NEW: Added database dependency for persistent storage.
+const https = require('https'); // NEW: For making API requests to OpenRouter.
 const Database = require('better-sqlite3');
-
 let config;
 try {
 	const configFile = fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8');
@@ -14,21 +13,13 @@ try {
 	console.error('Error loading config file, make sure to copy example-config.json to config.json:', error);
 	process.exit(1);
 }
-
-// --- NEW: Database Setup ---
-// Initialize the SQLite database. A new file 'llm-helper.sqlite' will be created.
 const db = new Database(path.join(__dirname, 'llm-helper.sqlite'));
-
-// Set up the database schema. This runs only if the tables don't already exist.
 db.exec(`
-    -- Stores projects selected by the user on the projects page.
     CREATE TABLE IF NOT EXISTS projects (
         root_index INTEGER NOT NULL,
         path TEXT NOT NULL,
         PRIMARY KEY (root_index, path)
     );
-
-    -- Stores the state of each project (which folders are open, which files are checked).
     CREATE TABLE IF NOT EXISTS project_states (
         project_root_index INTEGER NOT NULL,
         project_path TEXT NOT NULL,
@@ -37,8 +28,6 @@ db.exec(`
         PRIMARY KEY (project_root_index, project_path),
         FOREIGN KEY (project_root_index, project_path) REFERENCES projects(root_index, path) ON DELETE CASCADE
     );
-
-    -- Stores additional metadata for files, as requested.
     CREATE TABLE IF NOT EXISTS file_metadata (
         project_root_index INTEGER NOT NULL,
         project_path TEXT NOT NULL,
@@ -47,20 +36,54 @@ db.exec(`
         functions_overview TEXT,
         PRIMARY KEY (project_root_index, project_path, file_path)
     );
-
-    -- Stores global application settings like dark mode and the last opened project.
+    -- NEW: Stores the list of available LLMs from OpenRouter.
+    CREATE TABLE IF NOT EXISTS llms (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        context_length INTEGER,
+        prompt_price REAL,
+        completion_price REAL
+    );
     CREATE TABLE IF NOT EXISTS app_settings (
         key TEXT PRIMARY KEY,
         value TEXT
     );
 `);
-
-// Initialize default settings if they don't exist, preventing errors on first run.
 const initSettingsStmt = db.prepare("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)");
 initSettingsStmt.run('darkMode', 'false');
 initSettingsStmt.run('lastSelectedProject', '');
+initSettingsStmt.run('lastSelectedLlm', ''); // NEW: Add setting for last selected LLM.
 
-// --- END NEW ---
+// --- NEW: Helper function to fetch models from OpenRouter ---
+async function fetchOpenRouterModels() {
+	return new Promise((resolve, reject) => {
+		const options = {
+			hostname: 'openrouter.ai',
+			path: '/api/v1/models',
+			method: 'GET',
+			headers: {'Accept': 'application/json'}
+		};
+		const req = https.request(options, (res) => {
+			let data = '';
+			res.on('data', (chunk) => {
+				data += chunk;
+			});
+			res.on('end', () => {
+				if (res.statusCode >= 200 && res.statusCode < 300) {
+					try {
+						resolve(JSON.parse(data));
+					} catch (e) {
+						reject(new Error('Failed to parse OpenRouter response.'));
+					}
+				} else {
+					reject(new Error(`OpenRouter request failed with status code: ${res.statusCode}`));
+				}
+			});
+		});
+		req.on('error', (e) => reject(e));
+		req.end();
+	});
+}
 
 function resolvePath(inputPath, rootIndex) {
 	if (rootIndex >= config.root_directories.length) {
@@ -69,7 +92,7 @@ function resolvePath(inputPath, rootIndex) {
 	const realRoot = path.resolve(config.root_directories[rootIndex]);
 	const fullPath = inputPath === '.' ? realRoot : path.resolve(realRoot, inputPath);
 	if (!fullPath.startsWith(realRoot)) {
-		if (inputPath === '.' && fullPath === realRoot) { // This is okay
+		if (inputPath === '.' && fullPath === realRoot) {
 		} else {
 			throw new Error("Invalid path traversal attempt.");
 		}
@@ -204,38 +227,41 @@ function getAllTopLevelFolders() {
 	return {projects: allProjects};
 }
 
-
 const server = http.createServer((req, res) => {
 	const parsedUrl = url.parse(req.url, true);
-	
 	if (req.method === 'POST') {
 		let body = '';
 		req.on('data', chunk => {
 			body += chunk.toString();
 		});
-		req.on('end', () => {
+		req.on('end', async () => {
 			const postData = new URLSearchParams(body);
 			const action = postData.get('action');
 			console.log('POST Request Action:', action);
 			let result;
 			try {
-				// --- MODIFIED: API actions are now mostly database-driven ---
 				switch (action) {
-					// NEW: For the main page: gets saved projects, last selection, and dark mode
 					case 'get_main_page_data': {
 						const projects = db.prepare('SELECT root_index as rootIndex, path FROM projects ORDER BY path ASC').all();
-						const lastSelectedProject = db.prepare('SELECT value FROM app_settings WHERE key = ?').get('lastSelectedProject').value;
-						const darkMode = db.prepare('SELECT value FROM app_settings WHERE key = ?').get('darkMode').value === 'true';
-						result = {projects, lastSelectedProject, darkMode};
+						const settings = db.prepare('SELECT key, value FROM app_settings').all();
+						const appSettings = settings.reduce((acc, row) => {
+							acc[row.key] = row.value;
+							return acc;
+						}, {});
+						const llms = db.prepare('SELECT id, name FROM llms ORDER BY name ASC').all();
+						result = {
+							projects,
+							lastSelectedProject: appSettings.lastSelectedProject || '',
+							darkMode: appSettings.darkMode === 'true',
+							llms,
+							lastSelectedLlm: appSettings.lastSelectedLlm || ''
+						};
 						break;
 					}
-					
-					// NEW: For the projects page: gets all possible projects and checks which are saved in the DB
 					case 'get_projects_page_data': {
 						const allFolders = getAllTopLevelFolders().projects;
 						const savedProjects = db.prepare('SELECT root_index, path FROM projects').all();
 						const savedIdentifiers = new Set(savedProjects.map(p => `${p.root_index}_${p.path}`));
-						// Return all folders, with an 'isChecked' flag if they are in the database.
 						result = {
 							projects: allFolders.map(p => ({
 								...p,
@@ -244,64 +270,73 @@ const server = http.createServer((req, res) => {
 						};
 						break;
 					}
-					
-					// NEW: Adds or removes a project from the database based on checkbox state.
 					case 'toggle_project': {
 						const rootIndex = parseInt(postData.get('rootIndex'));
 						const projectPath = postData.get('path');
 						const isSelected = postData.get('isSelected') === 'true';
-						
 						if (isSelected) {
-							db.prepare('INSERT OR IGNORE INTO projects (root_index, path) VALUES (?, ?)')
-								.run(rootIndex, projectPath);
+							db.prepare('INSERT OR IGNORE INTO projects (root_index, path) VALUES (?, ?)').run(rootIndex, projectPath);
 						} else {
-							db.prepare('DELETE FROM projects WHERE root_index = ? AND path = ?')
-								.run(rootIndex, projectPath);
+							db.prepare('DELETE FROM projects WHERE root_index = ? AND path = ?').run(rootIndex, projectPath);
 						}
 						result = {success: true};
 						break;
 					}
-					
-					// NEW: Gets the saved state (open folders, checked files) for a specific project
 					case 'get_project_state': {
 						const rootIndex = parseInt(postData.get('rootIndex'));
 						const projectPath = postData.get('projectPath');
-						const state = db.prepare('SELECT open_folders, selected_files FROM project_states WHERE project_root_index = ? AND project_path = ?')
-							.get(rootIndex, projectPath);
+						const state = db.prepare('SELECT open_folders, selected_files FROM project_states WHERE project_root_index = ? AND project_path = ?').get(rootIndex, projectPath);
 						result = {
 							openFolders: state ? JSON.parse(state.open_folders || '[]') : [],
 							selectedFiles: state ? JSON.parse(state.selected_files || '[]') : []
 						};
 						break;
 					}
-					
-					// NEW: Saves the state for a project and marks it as the last one selected
 					case 'save_project_state': {
 						const rootIndex = parseInt(postData.get('rootIndex'));
 						const projectPath = postData.get('projectPath');
 						const openFolders = postData.get('openFolders');
 						const selectedFiles = postData.get('selectedFiles');
-						
-						db.prepare('INSERT OR REPLACE INTO project_states (project_root_index, project_path, open_folders, selected_files) VALUES (?, ?, ?, ?)')
-							.run(rootIndex, projectPath, openFolders, selectedFiles);
-						
-						db.prepare('UPDATE app_settings SET value = ? WHERE key = ?')
-							.run(`${rootIndex}_${projectPath}`, 'lastSelectedProject');
-						
+						db.prepare('INSERT OR REPLACE INTO project_states (project_root_index, project_path, open_folders, selected_files) VALUES (?, ?, ?, ?)').run(rootIndex, projectPath, openFolders, selectedFiles);
+						db.prepare('UPDATE app_settings SET value = ? WHERE key = ?').run(`${rootIndex}_${projectPath}`, 'lastSelectedProject');
 						result = {success: true};
 						break;
 					}
-					
-					// NEW: Saves the dark mode preference
 					case 'set_dark_mode': {
 						const isDarkMode = postData.get('isDarkMode') === 'true';
-						db.prepare('UPDATE app_settings SET value = ? WHERE key = ?')
-							.run(isDarkMode ? 'true' : 'false', 'darkMode');
+						db.prepare('UPDATE app_settings SET value = ? WHERE key = ?').run(isDarkMode ? 'true' : 'false', 'darkMode');
 						result = {success: true};
 						break;
 					}
-					
-					// Filesystem actions remain the same
+					// NEW: Refreshes the LLM list from OpenRouter and stores it in the DB.
+					case 'refresh_llms': {
+						const modelData = await fetchOpenRouterModels();
+						const models = modelData.data || [];
+						const insert = db.prepare('INSERT OR REPLACE INTO llms (id, name, context_length, prompt_price, completion_price) VALUES (@id, @name, @context_length, @prompt_price, @completion_price)');
+						const transaction = db.transaction((modelsToInsert) => {
+							db.exec('DELETE FROM llms');
+							for (const model of modelsToInsert) {
+								insert.run({
+									id: model.id,
+									name: model.name,
+									context_length: model.context_length,
+									prompt_price: parseFloat(model.pricing.prompt),
+									completion_price: parseFloat(model.pricing.completion)
+								});
+							}
+						});
+						transaction(models);
+						const newLlms = db.prepare('SELECT id, name FROM llms ORDER BY name ASC').all();
+						result = {success: true, llms: newLlms};
+						break;
+					}
+					// NEW: Saves the user's selected LLM.
+					case 'save_selected_llm': {
+						const llmId = postData.get('llmId');
+						db.prepare('UPDATE app_settings SET value = ? WHERE key = ?').run(llmId, 'lastSelectedLlm');
+						result = {success: true};
+						break;
+					}
 					case 'get_folders':
 						result = getFolders(postData.get('path') || '.', parseInt(postData.get('rootIndex') || '0'));
 						break;
@@ -351,18 +386,13 @@ const server = http.createServer((req, res) => {
 			}
 			const ext = path.extname(parsedUrl.pathname).slice(1);
 			const mimeTypes = {
-				html: 'text/html',
-				js: 'application/javascript',
-				css: 'text/css',
-				json: 'application/json',
-				txt: 'text/plain',
+				html: 'text/html', js: 'application/javascript', css: 'text/css', json: 'application/json', txt: 'text/plain',
 			};
 			res.writeHead(200, {'Content-Type': mimeTypes[ext] || 'application/octet-stream'});
 			res.end(content);
 		});
 	}
 });
-
 server.listen(config.server_port, () => {
 	console.log(`Server running at http://localhost:${config.server_port}/`);
 });
