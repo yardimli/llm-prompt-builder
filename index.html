@@ -297,7 +297,14 @@
 		
 		try {
 			const results = await Promise.all(requestPromises);
-			const contentFooter = "\nFormat the output. For PHP use psr-12 standards, for javascript use StandardJS but include semicolumns, for html use W3C standards.\nOutput as Git Diff.\nSkip files that dont need to be changed and are provided for reference.\nComment as needed.\nAdd comments to new lines and modifed sections.\n";
+			const contentFooter = "All input is minified. \n" +
+				"For output format the output.  \n" +
+				"For PHP use psr-12 standards.\n" +
+				"For javascript use StandardJS but include semicolumns.\n" +
+				"For html use W3C standards.\n" +
+				"Skip files that dont need to be changed and are provided for reference.\n" +
+				"Comment as needed.\n" +
+				"Add comments to new lines and modifed sections.\n";
 			$('#selected-content').val(results.join('') + contentFooter);
 		} catch (error) {
 			console.error("Error updating content:", error);
