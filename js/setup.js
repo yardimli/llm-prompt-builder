@@ -9,7 +9,9 @@ document.addEventListener('DOMContentLoaded', function () {
 		try {
 			const response = await fetch(url, {
 				method: 'POST',
-				headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded'
+				},
 				body: formData
 			});
 			if (!response.ok) {
@@ -38,7 +40,10 @@ document.addEventListener('DOMContentLoaded', function () {
 	document.getElementById('toggle-mode').addEventListener('click', function () {
 		const isDarkMode = document.body.classList.toggle('dark-mode');
 		applyDarkMode(isDarkMode);
-		postData('/', {action: 'set_dark_mode', isDarkMode: isDarkMode})
+		postData('/', {
+			action: 'set_dark_mode',
+			isDarkMode: isDarkMode
+		})
 			.catch(err => console.error("Failed to save dark mode setting.", err));
 	});
 	
@@ -49,12 +54,17 @@ document.addEventListener('DOMContentLoaded', function () {
 	const allowedExtsInput = document.getElementById('allowed-extensions-input');
 	const excludedFoldersInput = document.getElementById('excluded-folders-input');
 	const serverPortInput = document.getElementById('server-port-input');
-	// ADDED: Get reference to the new API key input
 	const openRouterApiKeyInput = document.getElementById('openrouter-api-key-input');
+	const promptFileOverviewInput = document.getElementById('prompt-file-overview-input');
+	const promptFunctionsLogicInput = document.getElementById('prompt-functions-logic-input');
+	const promptContentFooterInput = document.getElementById('prompt-content-footer-input');
+	const resetPromptsBtn = document.getElementById('reset-prompts-btn');
 	
 	async function loadSetupData() {
 		try {
-			const data = await postData('/', {action: 'get_setup'});
+			const data = await postData('/', {
+				action: 'get_setup'
+			});
 			const config = data.config;
 			
 			// Populate form fields
@@ -62,8 +72,10 @@ document.addEventListener('DOMContentLoaded', function () {
 			allowedExtsInput.value = (config.allowed_extensions || []).join(', ');
 			excludedFoldersInput.value = (config.excluded_folders || []).join(', ');
 			serverPortInput.value = config.server_port || 3000;
-			// ADDED: Populate the API key field
 			openRouterApiKeyInput.value = config.openrouter_api_key || '';
+			promptFileOverviewInput.value = config.prompt_file_overview || '';
+			promptFunctionsLogicInput.value = config.prompt_functions_logic || '';
+			promptContentFooterInput.value = config.prompt_content_footer || '';
 			
 			// Apply dark mode from main settings
 			applyDarkMode(data.darkMode);
@@ -79,19 +91,37 @@ document.addEventListener('DOMContentLoaded', function () {
 	form.addEventListener('submit', async function (e) {
 		e.preventDefault();
 		try {
-			// MODIFIED: Add the API key to the data being sent to the server
-			const setupData = {
+			const saveData = {
+				action: 'save_setup',
 				root_directories: JSON.stringify(rootDirsInput.value.split('\n').map(s => s.trim()).filter(Boolean)),
 				allowed_extensions: JSON.stringify(allowedExtsInput.value.split(',').map(s => s.trim()).filter(Boolean)),
 				excluded_folders: JSON.stringify(excludedFoldersInput.value.split(',').map(s => s.trim()).filter(Boolean)),
 				server_port: serverPortInput.value,
-				openrouter_api_key: openRouterApiKeyInput.value.trim()
+				openrouter_api_key: openRouterApiKeyInput.value.trim(),
+				prompt_file_overview: promptFileOverviewInput.value,
+				prompt_functions_logic: promptFunctionsLogicInput.value,
+				prompt_content_footer: promptContentFooterInput.value
 			};
 			
-			await postData('/', {action: 'save_setup', ...setupData});
+			await postData('/', saveData);
 			alert('Configuration saved successfully!\n\nPlease restart the server for port changes to take effect.');
 		} catch (error) {
 			alert(`Failed to save configuration: ${error.message}`);
+		}
+	});
+	
+	resetPromptsBtn.addEventListener('click', async () => {
+		if (confirm('Are you sure you want to reset all prompts to their default values? This cannot be undone.')) {
+			try {
+				await postData('/', {
+					action: 'reset_prompts'
+				});
+				alert('Prompts have been reset to their default values.');
+				// Reload the form to show the new default values
+				await loadSetupData();
+			} catch (error) {
+				alert(`Failed to reset prompts: ${error.message}`);
+			}
 		}
 	});
 	
