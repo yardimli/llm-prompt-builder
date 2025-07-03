@@ -34,10 +34,7 @@ function getProjectIdentifier(project) {
 function parseProjectIdentifier(identifier) {
 	if (!identifier) return null;
 	const parts = identifier.split('_');
-	return {
-		rootIndex: parseInt(parts[0], 10),
-		path: parts.slice(1).join('_')
-	};
+	return {rootIndex: parseInt(parts[0], 10), path: parts.slice(1).join('_')};
 }
 
 // A reusable async function to handle POST requests using fetch.
@@ -48,16 +45,12 @@ async function postData(data) {
 	}
 	const response = await fetch('/', {
 		method: 'POST',
-		headers: {
-			'Content-Type': 'application/x-www-form-urlencoded'
-		},
+		headers: {'Content-Type': 'application/x-www-form-urlencoded'},
 		body: formData
 	});
 	if (!response.ok) {
 		// Try to parse a JSON error message from the server, otherwise use status text.
-		let errorPayload = {
-			error: `Request failed: ${response.statusText}`
-		};
+		let errorPayload = {error: `Request failed: ${response.statusText}`};
 		try {
 			errorPayload = await response.json();
 		} catch (e) {
@@ -74,6 +67,7 @@ function saveCurrentProjectState() {
 	if (!currentProject) return;
 	const openFolders = Array.from(document.querySelectorAll('#file-tree .folder.open')).map(el => el.dataset.path);
 	const selectedFiles = Array.from(document.querySelectorAll('#file-tree input[type="checkbox"]:checked')).map(el => el.dataset.path);
+	
 	postData({
 		action: 'save_project_state',
 		rootIndex: currentProject.rootIndex,
@@ -94,9 +88,11 @@ async function loadProject(identifier) {
 		fileTree.innerHTML = '<p class="p-3 text-muted">Please select a project.</p>';
 		return;
 	}
+	
 	showLoading(`Loading project "${project.path}"...`);
 	currentProject = project;
 	document.getElementById('projects-dropdown').value = identifier;
+	
 	try {
 		// Fetch the project's saved state from the server.
 		const savedState = await postData({
@@ -106,10 +102,7 @@ async function loadProject(identifier) {
 		});
 		// Load the root folder and then restore the full state.
 		await loadFolders(currentProject.path, null);
-		await restoreState(savedState || {
-			openFolders: [],
-			selectedFiles: []
-		});
+		await restoreState(savedState || {openFolders: [], selectedFiles: []});
 	} catch (error) {
 		console.error(`Error loading project ${project.path}:`, error);
 		alert(`Error loading project. Check console for details.`);
@@ -170,6 +163,7 @@ function loadFolders(path, element) {
 				projectPath: currentProject.path
 			});
 			const fileTree = document.getElementById('file-tree');
+			
 			if (element) {
 				// Remove existing sub-list if it exists.
 				const nextUl = element.nextElementSibling;
@@ -210,10 +204,7 @@ function loadFolders(path, element) {
 			
 			// MODIFIED: Handle new file object structure and add analysis icon
 			response.files.forEach(fileInfo => {
-				const analysisIcon = fileInfo.has_analysis ?
-					`<i class="fas fa-info-circle analysis-icon" data-path="${fileInfo.path}" title="View Analysis"></i>` :
-					'';
-				
+				const analysisIcon = fileInfo.has_analysis ? `<i class="fas fa-info-circle analysis-icon" data-path="${fileInfo.path}" title="View Analysis"></i>` : '';
 				content += `
                     <li>
                         <div class="checkbox-wrapper">
@@ -224,8 +215,8 @@ function loadFolders(path, element) {
                     </li>`;
 			});
 			
-			
 			ul.innerHTML = content;
+			
 			if (element) {
 				element.after(ul); // Insert the new list after the folder span.
 			} else {
@@ -245,20 +236,16 @@ function loadFolders(path, element) {
 async function updateSelectedContent() {
 	const checkedBoxes = document.querySelectorAll('#file-tree input[type="checkbox"]:checked');
 	const selectedContentEl = document.getElementById('selected-content');
+	
 	if (checkedBoxes.length === 0) {
 		selectedContentEl.value = '';
 		return;
 	}
 	
 	showLoading(`Loading ${checkedBoxes.length} file(s)...`);
-	
 	const requestPromises = Array.from(checkedBoxes).map(box => {
 		const path = box.dataset.path;
-		return postData({
-			action: 'get_file_content',
-			rootIndex: currentProject.rootIndex,
-			path: path
-		})
+		return postData({action: 'get_file_content', rootIndex: currentProject.rootIndex, path: path})
 			.then(response => `${path}:\n\n${response.content}\n\n`)
 			.catch(error => `/* --- ERROR loading ${path}: ${error.message || 'Unknown error'} --- */\n\n`);
 	});
@@ -310,9 +297,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	// Single initialization function to load all data from the server.
 	async function initializeApp() {
 		try {
-			const data = await postData({
-				action: 'get_main_page_data'
-			});
+			const data = await postData({action: 'get_main_page_data'});
 			
 			// 1. Apply Dark Mode from server settings.
 			if (data.darkMode) {
@@ -336,6 +321,7 @@ document.addEventListener('DOMContentLoaded', function () {
 				document.getElementById('file-tree').innerHTML = '<p class="p-3 text-muted">No projects configured. Please go to "Select Projects" to begin.</p>';
 				return;
 			}
+			
 			data.projects.forEach(project => {
 				const identifier = getProjectIdentifier(project);
 				const option = document.createElement('option');
@@ -376,10 +362,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		const isDarkMode = document.body.classList.contains('dark-mode');
 		this.querySelector('i').classList.toggle('fa-sun');
 		this.querySelector('i').classList.toggle('fa-moon');
-		postData({
-			action: 'set_dark_mode',
-			isDarkMode: isDarkMode
-		});
+		postData({action: 'set_dark_mode', isDarkMode: isDarkMode});
 	});
 	
 	// Use event delegation for clicks within the dynamic file tree.
@@ -395,7 +378,6 @@ document.addEventListener('DOMContentLoaded', function () {
 			const filePath = analysisIcon.dataset.path;
 			const modalTitle = document.getElementById('analysisModalLabel');
 			const modalBody = document.getElementById('analysisModalBody');
-			
 			modalTitle.textContent = `Analysis for ${filePath}`;
 			modalBody.innerHTML = '<div class="text-center p-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
 			analysisModal.show();
@@ -407,7 +389,6 @@ document.addEventListener('DOMContentLoaded', function () {
 					projectPath: currentProject.path,
 					filePath: filePath
 				});
-				
 				let bodyContent = '<p>No analysis data found for this file.</p>';
 				if (data.file_overview || data.functions_overview) {
 					bodyContent = '';
@@ -518,6 +499,7 @@ document.addEventListener('DOMContentLoaded', function () {
 				searchTerm: searchTerm,
 				rootIndex: currentProject.rootIndex
 			});
+			
 			if (response.matchingFiles && response.matchingFiles.length > 0) {
 				let successfulChecks = 0;
 				for (const filePath of response.matchingFiles) {
@@ -563,6 +545,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		
 		const totalFiles = checkedBoxes.length;
 		let filesAnalyzed = 0;
+		let filesSkipped = 0;
 		let errors = [];
 		
 		for (let i = 0; i < totalFiles; i++) {
@@ -572,24 +555,29 @@ document.addEventListener('DOMContentLoaded', function () {
 			showLoading(`Analyzing ${i + 1}/${totalFiles}: ${fileName}`);
 			
 			try {
-				await postData({
+				const response = await postData({
 					action: 'analyze_file',
 					rootIndex: currentProject.rootIndex,
 					projectPath: currentProject.path,
 					filePath: filePath,
 					llmId: llmId
 				});
-				filesAnalyzed++;
 				
-				// Add the analysis icon to the UI without a full reload
-				const fileSpan = checkbox.closest('li').querySelector('.file');
-				if (fileSpan && !fileSpan.previousElementSibling.matches('.analysis-icon')) {
-					const icon = document.createElement('i');
-					icon.className = 'fas fa-info-circle analysis-icon';
-					icon.dataset.path = filePath;
-					icon.title = 'View Analysis';
-					checkbox.parentElement.after(icon);
+				if (response.status === 'analyzed') {
+					filesAnalyzed++;
+					// Add the analysis icon to the UI without a full reload
+					const fileSpan = checkbox.closest('li').querySelector('.file');
+					if (fileSpan && !fileSpan.previousElementSibling.matches('.analysis-icon')) {
+						const icon = document.createElement('i');
+						icon.className = 'fas fa-info-circle analysis-icon';
+						icon.dataset.path = filePath;
+						icon.title = 'View Analysis';
+						checkbox.parentElement.after(icon);
+					}
+				} else if (response.status === 'skipped') {
+					filesSkipped++;
 				}
+				
 			} catch (error) {
 				console.error(`Failed to analyze ${filePath}:`, error);
 				errors.push(`${filePath}: ${error.message}`);
@@ -597,9 +585,10 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 		
 		hideLoading();
-		let summaryMessage = `Analysis complete. Successfully analyzed ${filesAnalyzed} of ${totalFiles} files.`;
+		
+		let summaryMessage = `Analysis complete.\n- Total files selected: ${totalFiles}\n- Successfully analyzed: ${filesAnalyzed}\n- Skipped (up-to-date): ${filesSkipped}`;
 		if (errors.length > 0) {
-			summaryMessage += `\n\nErrors occurred for:\n- ${errors.join('\n- ')}\n\nCheck the console for more details.`;
+			summaryMessage += `\n\nErrors occurred for ${errors.length} file(s):\n- ${errors.join('\n- ')}\n\nCheck the console for more details.`;
 		}
 		alert(summaryMessage);
 	});

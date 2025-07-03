@@ -18,6 +18,7 @@ function createTables() {
             path TEXT NOT NULL,
             PRIMARY KEY (root_index, path)
         );
+
         CREATE TABLE IF NOT EXISTS project_states (
             project_root_index INTEGER NOT NULL,
             project_path TEXT NOT NULL,
@@ -26,14 +27,18 @@ function createTables() {
             PRIMARY KEY (project_root_index, project_path),
             FOREIGN KEY (project_root_index, project_path) REFERENCES projects(root_index, path) ON DELETE CASCADE
         );
+
         CREATE TABLE IF NOT EXISTS file_metadata (
             project_root_index INTEGER NOT NULL,
             project_path TEXT NOT NULL,
             file_path TEXT NOT NULL,
             file_overview TEXT,
             functions_overview TEXT,
+            last_analyze_update_time TEXT,
+            last_checksum TEXT,
             PRIMARY KEY (project_root_index, project_path, file_path)
         );
+
         CREATE TABLE IF NOT EXISTS llms (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
@@ -41,10 +46,12 @@ function createTables() {
             prompt_price REAL,
             completion_price REAL
         );
+
         CREATE TABLE IF NOT EXISTS app_settings (
             key TEXT PRIMARY KEY,
             value TEXT
         );
+
         CREATE TABLE IF NOT EXISTS app_setup (
             key TEXT PRIMARY KEY,
             value TEXT
@@ -64,7 +71,6 @@ function setDefaultConfig() {
 		server_port: "3000",
 		openrouter_api_key: "YOUR_API_KEY_HERE"
 	};
-	
 	const insertStmt = db.prepare('INSERT OR IGNORE INTO app_setup (key, value) VALUES (?, ?)');
 	const transaction = db.transaction(() => {
 		for (const key in defaultConfig) {
@@ -120,10 +126,8 @@ function loadConfigFromDb() {
 	// Mutate the original config object by copying the new properties into it.
 	// This ensures all other modules that have a reference to 'config' see the changes.
 	Object.assign(config, newConfigData);
-	
 	console.log('Configuration loaded from database.');
 }
-
 
 /**
  * Initializes the entire database and configuration setup.
@@ -202,6 +206,7 @@ function getMainPageData() {
 		return acc;
 	}, {});
 	const llms = db.prepare('SELECT id, name FROM llms ORDER BY name ASC').all();
+	
 	return {
 		projects,
 		lastSelectedProject: appSettings.lastSelectedProject || '',

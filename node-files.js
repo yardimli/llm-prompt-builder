@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { db, config } = require('./node-config');
+const {db, config} = require('./node-config');
 
 /**
  * Resolves a relative path from the client against a configured root directory,
@@ -17,7 +17,6 @@ function resolvePath(inputPath, rootIndex) {
 	const realRoot = path.resolve(config.root_directories[rootIndex]);
 	// If inputPath is '.', use the realRoot. Otherwise, resolve it against the realRoot.
 	const fullPath = inputPath === '.' ? realRoot : path.resolve(realRoot, inputPath);
-	
 	// Security check: ensure the resolved path is still within the intended root directory.
 	if (!fullPath.startsWith(realRoot)) {
 		throw new Error("Invalid path traversal attempt.");
@@ -37,7 +36,6 @@ function getFolders(inputPath, rootIndex, projectPath) {
 	const fullPath = resolvePath(inputPath, rootIndex);
 	const folders = [];
 	const files = [];
-	
 	// Get analysis metadata for all files in this project to avoid N+1 queries in the loop.
 	const metadataStmt = db.prepare('SELECT file_path FROM file_metadata WHERE project_root_index = ? AND project_path = ?');
 	const analyzedFiles = new Set(metadataStmt.all(rootIndex, projectPath).map(r => r.file_path));
@@ -46,7 +44,6 @@ function getFolders(inputPath, rootIndex, projectPath) {
 		const items = fs.readdirSync(fullPath);
 		for (const item of items) {
 			if (item === '.' || item === '..') continue;
-			
 			const itemFullPath = path.join(fullPath, item);
 			let stats;
 			try {
@@ -55,7 +52,6 @@ function getFolders(inputPath, rootIndex, projectPath) {
 				console.warn(`Skipping ${itemFullPath}: ${e.message}`);
 				continue;
 			}
-			
 			if (stats.isDirectory()) {
 				if (!config.excluded_folders.includes(item)) {
 					folders.push(item);
@@ -70,15 +66,15 @@ function getFolders(inputPath, rootIndex, projectPath) {
 				if (config.allowed_extensions.includes(ext) || (ext === '' && config.allowed_extensions.includes(base))) {
 					const relativeFilePath = path.join(inputPath, item).replace(/\\/g, '/');
 					const hasAnalysis = analyzedFiles.has(relativeFilePath);
-					files.push({ name: item, path: relativeFilePath, has_analysis: hasAnalysis });
+					files.push({name: item, path: relativeFilePath, has_analysis: hasAnalysis});
 				}
 			}
 		}
 	} catch (error) {
 		console.error(`Error reading directory ${fullPath}:`, error);
-		return { folders: [], files: [] };
+		return {folders: [], files: []};
 	}
-	return { folders, files };
+	return {folders, files};
 }
 
 /**
@@ -93,10 +89,27 @@ function getFileContent(inputPath, rootIndex) {
 		const fileContents = fs.readFileSync(fullPath, 'utf8');
 		// Collapse multiple whitespace characters into a single space for minification.
 		const collapsedContent = fileContents.replace(/\s+/g, ' ');
-		return { content: collapsedContent };
+		return {content: collapsedContent};
 	} catch (error) {
 		console.error(`Error reading file ${fullPath}:`, error);
 		throw new Error(`Could not read file: ${inputPath}`);
+	}
+}
+
+/**
+ * Reads the raw, unmodified content of a single file.
+ * @param {string} inputPath - The path of the file to read.
+ * @param {number} rootIndex - The index of the project's root directory.
+ * @returns {string} The raw content of the file.
+ * @throws {Error} If the file cannot be read.
+ */
+function getRawFileContent(inputPath, rootIndex) {
+	const fullPath = resolvePath(inputPath, rootIndex);
+	try {
+		return fs.readFileSync(fullPath, 'utf8');
+	} catch (error) {
+		console.error(`Error reading raw file ${fullPath}:`, error);
+		throw new Error(`Could not read raw file content for: ${inputPath}`);
 	}
 }
 
@@ -121,7 +134,6 @@ function searchFiles(startPath, searchTerm, rootIndex) {
 			console.warn(`Cannot read directory ${currentDir}: ${err.message}`);
 			return;
 		}
-		
 		for (const item of items) {
 			if (item === '.' || item === '..') continue;
 			const itemFullPath = path.join(currentDir, item);
@@ -132,7 +144,6 @@ function searchFiles(startPath, searchTerm, rootIndex) {
 				console.warn(`Skipping ${itemFullPath}: ${e.message}`);
 				continue;
 			}
-			
 			if (stats.isDirectory()) {
 				if (!config.excluded_folders.includes(item)) {
 					searchInDirectory(itemFullPath);
@@ -155,7 +166,7 @@ function searchFiles(startPath, searchTerm, rootIndex) {
 	}
 	
 	searchInDirectory(absoluteStartPath);
-	return { matchingFiles };
+	return {matchingFiles};
 }
 
 /**
@@ -166,15 +177,16 @@ function searchFiles(startPath, searchTerm, rootIndex) {
  * @param {string} params.filePath - The path of the file.
  * @returns {object} The stored analysis data or nulls if not found.
  */
-function getFileAnalysis({ rootIndex, projectPath, filePath }) {
+function getFileAnalysis({rootIndex, projectPath, filePath}) {
 	const data = db.prepare('SELECT file_overview, functions_overview FROM file_metadata WHERE project_root_index = ? AND project_path = ? AND file_path = ?')
 		.get(rootIndex, projectPath, filePath);
-	return data || { file_overview: null, functions_overview: null };
+	return data || {file_overview: null, functions_overview: null};
 }
 
 module.exports = {
 	getFolders,
 	getFileContent,
+	getRawFileContent,
 	searchFiles,
 	getFileAnalysis
 };
