@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,12 +9,10 @@
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
 	        crossorigin="anonymous"></script>
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-	<script src="llm.js"></script>
-	<!-- Moved before index.js to ensure its functions are available for initialization -->
+	<script src="llm.js"></script> <!-- Moved before index.js to ensure its functions are available for initialization -->
 	<script src="index.js"></script>
 	<link rel="stylesheet" href="index.css">
 </head>
-
 <body class="">
 <div class="container-fluid mt-2">
 	<header class="d-flex flex-wrap justify-content-center py-3 mb-1 border-bottom">
@@ -34,17 +31,28 @@
 					<i class="fas fa-sync-alt"></i>
 				</button>
 			</li>
+			<!-- NEW: Analyze Button -->
 			<li class="nav-item me-2">
-				<a href="/projects" class="btn btn-outline-secondary">Select Projects</a>
-			</li>
-			<li class="nav-item me-2">
-				<button id="loading-indicator" class="btn btn-outline-secondary" style="display: none;">
-					<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-					Loading...
+				<button id="analyze-files" class="btn btn-outline-info" title="Analyze Selected Files">
+					<i class="fa-solid fa-microscope"></i>
 				</button>
 			</li>
 			<li class="nav-item me-2">
-				<button id="unselect-all" class="btn btn-outline-primary">Unselect All Files</button>
+				<a href="/projects" class="btn btn-outline-primary" title="Select Projects"><i
+					class="fa-solid fa-check-double"></i></a>
+			</li>
+			<!-- NEW: Added Configure button -->
+			<li class="nav-item me-2">
+				<a href="/setup" class="btn btn-outline-primary" title="Configure"><i class="fa-solid fa-gears"></i></a>
+			</li>
+			<li class="nav-item me-2">
+				<button id="loading-indicator" class="btn btn-outline-secondary" style="display: none;">
+					<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...
+				</button>
+			</li>
+			<li class="nav-item me-2">
+				<button id="unselect-all" class="btn btn-outline-secondary" title="Unselect All Files"><i
+					class="fa-solid fa-rotate-right"></i></button>
 			</li>
 			<li class="nav-item">
 				<button id="toggle-mode" class="btn btn-outline-primary">
@@ -53,7 +61,6 @@
 			</li>
 		</ul>
 	</header>
-	
 	<div class="row">
 		<div class="col-lg-5 col-md-6">
 			<div id="file-tree"></div>
@@ -86,6 +93,24 @@
 		</div>
 	</div>
 </div>
-</body>
 
+<!-- NEW: Analysis Modal -->
+<div class="modal fade" id="analysisModal" tabindex="-1" aria-labelledby="analysisModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-lg modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="analysisModalLabel">File Analysis</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body" id="analysisModalBody">
+				<!-- Analysis content will be injected here by JavaScript -->
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+</body>
 </html>

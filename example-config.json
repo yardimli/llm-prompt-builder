@@ -1,7 +1,7 @@
 {
   "root_directories": [
     "path/to/your/first/directory",
-    "e:/ComfyUI_windows_portable/ComfyUI/custom_nodes"
+    "c:/myprojects",
   ],
   "allowed_extensions": [
     "js",

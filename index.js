@@ -2,9 +2,9 @@
 let currentProject = null; // { rootIndex: number, path: string }
 let currentSearchFolderPath = null;
 let searchModal = null; // Will be a Bootstrap Modal instance.
+let analysisModal = null; // NEW: Bootstrap Modal instance for analysis results.
 
 // --- Utility Functions ---
-
 function showLoading(message = 'Loading...') {
 	const indicator = document.getElementById('loading-indicator');
 	if (indicator) {
@@ -69,7 +69,6 @@ async function postData(data) {
 }
 
 // --- Project & State Management ---
-
 // Saves the current project state (open folders, selected files) to the server.
 function saveCurrentProjectState() {
 	if (!currentProject) return;
@@ -120,7 +119,6 @@ async function loadProject(identifier) {
 }
 
 // --- Core File Tree Logic ---
-
 // Restores the UI state (open folders, checked files) from data fetched from the server.
 async function restoreState(state) {
 	console.log('Restoring state:', state);
@@ -132,7 +130,9 @@ async function restoreState(state) {
 			parentPath = getParentPath(parentPath);
 		}
 	});
+	
 	const sortedPaths = [...pathsToEnsureOpen].sort((a, b) => a.split('/').length - b.split('/').length);
+	
 	for (const path of sortedPaths) {
 		const folderElement = document.querySelector(`#file-tree .folder[data-path="${path}"]`);
 		if (folderElement && !folderElement.classList.contains('open')) {
@@ -140,6 +140,7 @@ async function restoreState(state) {
 			await loadFolders(path, folderElement);
 		}
 	}
+	
 	restoreCheckedStates(state.selectedFiles || []);
 	updateSelectedContent();
 }
@@ -161,10 +162,12 @@ function loadFolders(path, element) {
 	return new Promise(async (resolve, reject) => {
 		if (!currentProject) return reject(new Error('No project selected'));
 		try {
+			// MODIFIED: Pass projectPath to get analysis metadata
 			const response = await postData({
 				action: 'get_folders',
 				path: path,
-				rootIndex: currentProject.rootIndex
+				rootIndex: currentProject.rootIndex,
+				projectPath: currentProject.path
 			});
 			const fileTree = document.getElementById('file-tree');
 			if (element) {
@@ -176,40 +179,52 @@ function loadFolders(path, element) {
 			} else {
 				fileTree.innerHTML = ''; // Clear the entire tree for root loading.
 			}
+			
 			if (!response || (!response.folders.length && !response.files.length)) {
 				if (element) element.classList.remove('open');
 				return resolve();
 			}
+			
 			const ul = document.createElement('ul');
 			ul.className = 'list-unstyled';
 			// Hide by default to avoid flash of unstyled content, will be shown after insertion.
 			ul.style.display = 'none';
+			
 			let content = '';
 			response.folders.sort((a, b) => a.localeCompare(b));
-			response.files.sort((a, b) => a.localeCompare(b));
+			response.files.sort((a, b) => a.name.localeCompare(b.name)); // MODIFIED: Sort by name property
+			
 			response.folders.forEach(folder => {
 				const fullPath = `${path}/${folder}`;
 				content += `
-          <li>
-            <span class="folder" data-path="${fullPath}">
-              ${folder}
-              <span class="folder-controls">
-                <i class="fas fa-search folder-search-icon" title="Search in this folder"></i>
-                <i class="fas fa-eraser folder-clear-icon" title="Clear selection in this folder"></i>
-              </span>
-            </span>
-          </li>`;
+                    <li>
+                        <span class="folder" data-path="${fullPath}">
+                            ${folder}
+                            <span class="folder-controls">
+                                <i class="fas fa-search folder-search-icon" title="Search in this folder"></i>
+                                <i class="fas fa-eraser folder-clear-icon" title="Clear selection in this folder"></i>
+                            </span>
+                        </span>
+                    </li>`;
 			});
-			response.files.forEach(file => {
-				const fullPath = `${path}/${file}`;
+			
+			// MODIFIED: Handle new file object structure and add analysis icon
+			response.files.forEach(fileInfo => {
+				const analysisIcon = fileInfo.has_analysis ?
+					`<i class="fas fa-info-circle analysis-icon" data-path="${fileInfo.path}" title="View Analysis"></i>` :
+					'';
+				
 				content += `
-          <li>
-            <div class="checkbox-wrapper">
-              <input type="checkbox" data-path="${fullPath}">
-            </div>
-            <span class="file" title="${fullPath}">${file}</span>
-          </li>`;
+                    <li>
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" data-path="${fileInfo.path}">
+                        </div>
+                        ${analysisIcon}
+                        <span class="file" title="${fileInfo.path}">${fileInfo.name}</span>
+                    </li>`;
 			});
+			
+			
 			ul.innerHTML = content;
 			if (element) {
 				element.after(ul); // Insert the new list after the folder span.
@@ -234,7 +249,9 @@ async function updateSelectedContent() {
 		selectedContentEl.value = '';
 		return;
 	}
+	
 	showLoading(`Loading ${checkedBoxes.length} file(s)...`);
+	
 	const requestPromises = Array.from(checkedBoxes).map(box => {
 		const path = box.dataset.path;
 		return postData({
@@ -245,6 +262,7 @@ async function updateSelectedContent() {
 			.then(response => `${path}:\n\n${response.content}\n\n`)
 			.catch(error => `/* --- ERROR loading ${path}: ${error.message || 'Unknown error'} --- */\n\n`);
 	});
+	
 	try {
 		const results = await Promise.all(requestPromises);
 		const contentFooter = 'All input is minified. \n' +
@@ -285,9 +303,9 @@ async function ensureFileIsVisible(filePath) {
 }
 
 // --- Document Ready ---
-
 document.addEventListener('DOMContentLoaded', function () {
 	searchModal = new bootstrap.Modal(document.getElementById('searchModal'));
+	analysisModal = new bootstrap.Modal(document.getElementById('analysisModal')); // NEW: Initialize analysis modal
 	
 	// Single initialization function to load all data from the server.
 	async function initializeApp() {
@@ -343,7 +361,6 @@ document.addEventListener('DOMContentLoaded', function () {
 	initializeApp();
 	
 	// --- Event Listeners ---
-	
 	document.getElementById('projects-dropdown').addEventListener('change', function () {
 		loadProject(this.value);
 	});
@@ -370,6 +387,53 @@ document.addEventListener('DOMContentLoaded', function () {
 		const folder = e.target.closest('.folder');
 		const searchIcon = e.target.closest('.folder-search-icon');
 		const clearIcon = e.target.closest('.folder-clear-icon');
+		const analysisIcon = e.target.closest('.analysis-icon'); // NEW: Analysis icon listener
+		
+		// NEW: Handle analysis icon click
+		if (analysisIcon) {
+			e.stopPropagation();
+			const filePath = analysisIcon.dataset.path;
+			const modalTitle = document.getElementById('analysisModalLabel');
+			const modalBody = document.getElementById('analysisModalBody');
+			
+			modalTitle.textContent = `Analysis for ${filePath}`;
+			modalBody.innerHTML = '<div class="text-center p-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+			analysisModal.show();
+			
+			try {
+				const data = await postData({
+					action: 'get_file_analysis',
+					rootIndex: currentProject.rootIndex,
+					projectPath: currentProject.path,
+					filePath: filePath
+				});
+				
+				let bodyContent = '<p>No analysis data found for this file.</p>';
+				if (data.file_overview || data.functions_overview) {
+					bodyContent = '';
+					if (data.file_overview) {
+						try {
+							const overview = JSON.parse(data.file_overview);
+							bodyContent += `<h6>File Overview</h6><pre>${JSON.stringify(overview, null, 2)}</pre>`;
+						} catch (err) {
+							bodyContent += `<h6>File Overview (Raw)</h6><pre>${data.file_overview}</pre>`;
+						}
+					}
+					if (data.functions_overview) {
+						try {
+							const functions = JSON.parse(data.functions_overview);
+							bodyContent += `<h6>Functions & Logic</h6><pre>${JSON.stringify(functions, null, 2)}</pre>`;
+						} catch (err) {
+							bodyContent += `<h6>Functions & Logic (Raw)</h6><pre>${data.functions_overview}</pre>`;
+						}
+					}
+				}
+				modalBody.innerHTML = bodyContent;
+			} catch (error) {
+				modalBody.innerHTML = `<p class="text-danger">Error fetching analysis: ${error.message}</p>`;
+			}
+			return;
+		}
 		
 		if (searchIcon) {
 			e.stopPropagation();
@@ -454,7 +518,6 @@ document.addEventListener('DOMContentLoaded', function () {
 				searchTerm: searchTerm,
 				rootIndex: currentProject.rootIndex
 			});
-			
 			if (response.matchingFiles && response.matchingFiles.length > 0) {
 				let successfulChecks = 0;
 				for (const filePath of response.matchingFiles) {
@@ -482,5 +545,62 @@ document.addEventListener('DOMContentLoaded', function () {
 		} finally {
 			hideLoading();
 		}
+	});
+	
+	// NEW: Event listener for the Analyze Files button
+	document.getElementById('analyze-files').addEventListener('click', async function () {
+		const checkedBoxes = Array.from(document.querySelectorAll('#file-tree input[type="checkbox"]:checked'));
+		const llmId = document.getElementById('llm-dropdown').value;
+		
+		if (checkedBoxes.length === 0) {
+			alert('Please select at least one file to analyze.');
+			return;
+		}
+		if (!llmId) {
+			alert('Please select an LLM from the dropdown to perform the analysis.');
+			return;
+		}
+		
+		const totalFiles = checkedBoxes.length;
+		let filesAnalyzed = 0;
+		let errors = [];
+		
+		for (let i = 0; i < totalFiles; i++) {
+			const checkbox = checkedBoxes[i];
+			const filePath = checkbox.dataset.path;
+			const fileName = filePath.split('/').pop();
+			showLoading(`Analyzing ${i + 1}/${totalFiles}: ${fileName}`);
+			
+			try {
+				await postData({
+					action: 'analyze_file',
+					rootIndex: currentProject.rootIndex,
+					projectPath: currentProject.path,
+					filePath: filePath,
+					llmId: llmId
+				});
+				filesAnalyzed++;
+				
+				// Add the analysis icon to the UI without a full reload
+				const fileSpan = checkbox.closest('li').querySelector('.file');
+				if (fileSpan && !fileSpan.previousElementSibling.matches('.analysis-icon')) {
+					const icon = document.createElement('i');
+					icon.className = 'fas fa-info-circle analysis-icon';
+					icon.dataset.path = filePath;
+					icon.title = 'View Analysis';
+					checkbox.parentElement.after(icon);
+				}
+			} catch (error) {
+				console.error(`Failed to analyze ${filePath}:`, error);
+				errors.push(`${filePath}: ${error.message}`);
+			}
+		}
+		
+		hideLoading();
+		let summaryMessage = `Analysis complete. Successfully analyzed ${filesAnalyzed} of ${totalFiles} files.`;
+		if (errors.length > 0) {
+			summaryMessage += `\n\nErrors occurred for:\n- ${errors.join('\n- ')}\n\nCheck the console for more details.`;
+		}
+		alert(summaryMessage);
 	});
 });

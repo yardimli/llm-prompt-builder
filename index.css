@@ -147,3 +147,49 @@ body.dark-mode .text-body {
     vertical-align: text-bottom;
     margin-left: 5px;
 }
+
+#projects-dropdown {
+    max-width: 200px;
+}
+
+#llm-dropdown {
+    max-width: 200px;
+}
+
+.analysis-icon {
+    cursor: pointer;
+    color: #0dcaf0; /* Bootstrap 'info' color */
+    margin-right: 5px;
+    vertical-align: middle;
+}
+.analysis-icon:hover {
+    color: #0aa5c2;
+}
+body.dark-mode .analysis-icon {
+    color: #2cf3ff;
+}
+body.dark-mode .analysis-icon:hover {
+    color: #87faff;
+}
+#analysisModalBody h6 {
+    margin-top: 1rem;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 5px;
+    font-weight: bold;
+}
+body.dark-mode #analysisModalBody h6 {
+    border-bottom-color: #555;
+}
+#analysisModalBody pre {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 14px;
+}
+body.dark-mode #analysisModalBody pre {
+    background-color: #333;
+    border: 1px solid #555;
+    color: #fff;
+}
